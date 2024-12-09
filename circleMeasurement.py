@@ -1,85 +1,161 @@
-import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
 
-#Something like this will work.
+# Load points from file
+file_path = "2024-12-06CutToAnalyze/backside/test.txt"  # Replace with actual path
+points = np.loadtxt(file_path)
 
-# Step 1: Load the image
-image = cv2.imread('5x 1 deg (2).png')
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+# Separate x and y coordinates
+x_coords = points[:, 0]
+y_coords = points[:, 1]
 
-# Step 2: Preprocess the image
-_, binary = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY_INV)  # Adjust threshold as needed
+# Calculate cumulative distances along the loop
+distances = np.sqrt(np.diff(x_coords) ** 2 + np.diff(y_coords) ** 2)
+cumulative_distances = np.insert(np.cumsum(distances), 0, 0)  # Include starting point
 
-# Step 3: Detect contours
-contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-hole_contour = max(contours, key=cv2.contourArea)  # Assuming the hole is the largest contour
-sorted_contours = sorted(contours, key=cv2.contourArea,reverse=True)
-hole_contour = sorted_contours[0]   
+# Create uniform samples along the cumulative distances
+num_points = 1000  # Desired number of uniformly spaced points
+uniform_distances = np.linspace(0, cumulative_distances[-1], num_points)
 
-# Step 4: Fit a circle and calculate roundness
-(x, y), radius = cv2.minEnclosingCircle(hole_contour)
-circle_area = np.pi * (radius ** 2)
-contour_area = cv2.contourArea(hole_contour)
-circularity = (4 * np.pi * contour_area) / (cv2.arcLength(hole_contour, True) ** 2)
+# Interpolate x and y coordinates at uniform distances
+x_interp = interp1d(cumulative_distances, x_coords, kind="cubic")(uniform_distances)
+y_interp = interp1d(cumulative_distances, y_coords, kind="cubic")(uniform_distances)
 
-# Step 5: Draw and visualize
-output = image.copy()
-cv2.drawContours(output, [hole_contour], -1, (0, 255, 0), 2)  # Contour
-cv2.circle(output, (int(x), int(y)), int(radius), (255, 0, 0), 2)  # Fitted circle
+# Recalculate the center
+center_x = np.mean(x_interp)
+center_y = np.mean(y_interp)
 
+# Calculate distances from the center
+new_distances = np.sqrt((x_interp - center_x) ** 2 + (y_interp - center_y) ** 2)
+
+# Find the closest and furthest distances
+min_distance = np.min(new_distances)
+max_distance = np.max(new_distances)
+
+# Find the corresponding points
+closest_point = np.array(
+    [x_interp[np.argmin(new_distances)], y_interp[np.argmin(new_distances)]]
+)
+furthest_point = np.array(
+    [x_interp[np.argmax(new_distances)], y_interp[np.argmax(new_distances)]]
+)
+
+# Plot the resampled points and calculated features
 plt.figure(figsize=(10, 10))
-plt.imshow(cv2.cvtColor(output, cv2.COLOR_BGR2RGB))
-plt.title(f"Circularity: {circularity:.2f}")
+plt.scatter(x_interp, y_interp, color="blue", label="Uniformly Resampled Points")
+plt.scatter(center_x, center_y, color="red", label="Center")
+plt.scatter(closest_point[0], closest_point[1], color="green", label="Closest Point")
+plt.scatter(
+    furthest_point[0], furthest_point[1], color="purple", label="Furthest Point"
+)
+
+# Draw circles for the closest and furthest distances
+circle_closest = plt.Circle(
+    (center_x, center_y),
+    min_distance,
+    color="green",
+    fill=False,
+    linestyle="--",
+    label="Closest Radius",
+)
+circle_furthest = plt.Circle(
+    (center_x, center_y),
+    max_distance,
+    color="purple",
+    fill=False,
+    linestyle="--",
+    label="Furthest Radius",
+)
+plt.gca().add_artist(circle_closest)
+plt.gca().add_artist(circle_furthest)
+
+plt.legend(loc="upper left")
+plt.xlabel("X")
+plt.ylabel("Y")
+plt.title("Uniformly Resampled Points and Radii")
+plt.axis("equal")
 plt.show()
 
-# Step 1: Load and preprocess the image
-image = cv2.imread('5x 1 deg (2).png')
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+# Print results
+print(f"Center: ({center_x:.2f}, {center_y:.2f})")
+print(
+    f"Closest Point: ({closest_point[0]:.2f}, {closest_point[1]:.2f}) with Distance: {min_distance:.2f}"
+)
+print(
+    f"Furthest Point: ({furthest_point[0]:.2f}, {furthest_point[1]:.2f}) with Distance: {max_distance:.2f}"
+)
 
-# Detect the largest contour (hole)
-_, binary = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY_INV)
-contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-hole_contour = max(contours, key=cv2.contourArea)
 
-# Step 2: Get the center and radius of the hole
-(x, y), radius = cv2.minEnclosingCircle(hole_contour)
-center = (int(x), int(y))
-hole_radius = int(radius)
+# THIS WORKS GOOD FOR UNIFORM SPACED POINTS
+# import numpy as np
+# import matplotlib.pyplot as plt
 
-# Step 3: Create a radial mask for the debris region
-ring_start = int(hole_radius * 1.1)  # Start a bit outside the hole
-ring_end = int(hole_radius * 2.0)   # Adjust outer limit as needed
-rows, cols = gray.shape
-y_grid, x_grid = np.ogrid[:rows, :cols]
-distance_from_center = np.sqrt((x_grid - center[0])**2 + (y_grid - center[1])**2)
+# # Load points from file
+# file_path = "2024-12-06CutToAnalyze/backside/test.txt"  # Replace with actual path
+# points = np.loadtxt(file_path)
 
-# Mask for the ring
-ring_mask = (distance_from_center >= ring_start) & (distance_from_center <= ring_end)
+# # Separate x and y coordinates
+# x_coords = points[:, 0]
+# y_coords = points[:, 1]
 
-# Step 4: Analyze intensity in the ring region
-ring_values = gray[ring_mask]
+# # Calculate the center of the points
+# center_x = np.mean(x_coords)
+# center_y = np.mean(y_coords)
+# center = np.array([center_x, center_y])
 
-# Compute a radial profile (average intensity at each radius)
-radii = np.arange(ring_start, ring_end + 1)
-intensity_profile = [
-    gray[(distance_from_center >= r) & (distance_from_center < r + 1)].mean()
-    for r in radii
-]
+# # Calculate distances from the center
+# distances = np.sqrt((x_coords - center_x) ** 2 + (y_coords - center_y) ** 2)
 
-# Step 5: Detect edges of the debris ring based on intensity
-intensity_gradient = np.gradient(intensity_profile)
-inner_edge_index = np.argmax(intensity_gradient)  # Sharp intensity increase
-outer_edge_index = np.argmin(intensity_gradient)  # Sharp intensity decrease
-ring_thickness = radii[outer_edge_index] - radii[inner_edge_index]
+# # Find the closest and furthest distances
+# min_distance = np.min(distances)
+# max_distance = np.max(distances)
 
-# Step 6: Plot the results
-plt.figure(figsize=(10, 5))
-plt.plot(radii, intensity_profile, label='Intensity Profile')
-plt.axvline(radii[inner_edge_index], color='g', linestyle='--', label='Inner Edge')
-plt.axvline(radii[outer_edge_index], color='r', linestyle='--', label='Outer Edge')
-plt.title(f"Debris Ring Thickness: {ring_thickness:.2f} pixels")
-plt.xlabel("Radius (pixels)")
-plt.ylabel("Intensity")
-plt.legend()
-plt.show()
+# # Find the corresponding points
+# closest_point = points[np.argmin(distances)]
+# furthest_point = points[np.argmax(distances)]
+
+# # Plot the points, center, and radii
+# plt.figure(figsize=(10, 10))
+# plt.scatter(x_coords, y_coords, color="blue", label="Points")
+# plt.scatter(center_x, center_y, color="red", label="Center")
+# plt.scatter(closest_point[0], closest_point[1], color="green", label="Closest Point")
+# plt.scatter(
+#     furthest_point[0], furthest_point[1], color="purple", label="Furthest Point"
+# )
+
+# # Draw circles for the closest and furthest distances
+# circle_closest = plt.Circle(
+#     (center_x, center_y),
+#     min_distance,
+#     color="green",
+#     fill=False,
+#     linestyle="--",
+#     label="Closest Radius",
+# )
+# circle_furthest = plt.Circle(
+#     (center_x, center_y),
+#     max_distance,
+#     color="purple",
+#     fill=False,
+#     linestyle="--",
+#     label="Furthest Radius",
+# )
+# plt.gca().add_artist(circle_closest)
+# plt.gca().add_artist(circle_furthest)
+
+# plt.legend(loc="upper left")
+# plt.xlabel("X")
+# plt.ylabel("Y")
+# plt.title("Points with Closest and Furthest Radii from Center")
+# plt.axis("equal")
+# plt.show()
+
+# # Print results
+# print(f"Center: ({center_x:.2f}, {center_y:.2f})")
+# print(
+#     f"Closest Point: ({closest_point[0]:.2f}, {closest_point[1]:.2f}) with Distance: {min_distance:.2f}"
+# )
+# print(
+#     f"Furthest Point: ({furthest_point[0]:.2f}, {furthest_point[1]:.2f}) with Distance: {max_distance:.2f}"
+# )
