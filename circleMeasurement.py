@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
 # Load points from the file
-file_path = "ImagesToTest/2024-12-10/trail 12/4.txt"  # Replace with the correct path
+file_path = "ImagesToTest/2024-12-10/trial 25/3.txt"  # Replace with the correct path
 points = np.loadtxt(file_path)
 
 # Ensure the loop is closed by appending the first point to the end
