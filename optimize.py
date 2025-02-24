@@ -11,7 +11,7 @@ from skopt.plots import (
 )
 
 parameterSheet = pandas.read_excel(
-    "ImagesToTest/2024-12-17/parametersVsQualityLocal2024-12-17.xlsx",
+    "ImagesToTest/2025-02-24/parametersVsQualityLocal2025-02-24.xlsx",
     sheet_name="Parameters",
 ).to_numpy()
 
@@ -20,17 +20,15 @@ initial_parameters = []
 initial_quality_factors = []
 
 for trialNumber in range(1, len(parameterSheet)):
-    initial_parameters.append(list(parameterSheet[trialNumber, 2:8]))
-    initial_quality_factors.append(parameterSheet[trialNumber, 8])
+    initial_parameters.append(list(parameterSheet[trialNumber, 1:6]))
+    initial_quality_factors.append(parameterSheet[trialNumber, 6])
 # initial_parameters = np.array(initial_parameters)
 # initial_quality_factors = np.array(initial_quality_factors)
-
+print(initial_parameters)
+print(initial_quality_factors)
 # Define the parameter space
 space = [
-    Real(0.000070, 0.000151, name="pulse_energy"),  # Pulse energy (J)
-    Integer(
-        1, 4, name="PulsePicker"
-    ),  # Pulse Picker (Laser is 20KhZ rep rate divided by pulse picker)
+    Real(1, 3, name="Power"),  # Pulse energy (J)
     Real(
         17, 21.5, name="FocalPosition"
     ),  # Position of slide (mm) with respect to bessel characterization
@@ -42,9 +40,7 @@ space = [
 
 # Define some constraints
 def outputConstraints(params):
-    pulse_energy, pulse_picker, focal_position, scan_speed, hatch_spacing, repeats = (
-        params
-    )
+    pulse_energy, focal_position, scan_speed, hatch_spacing, repeats = params
     # Test timelieness
     if (0.5 * 2 * np.pi) * repeats * 10 * 4 / (
         scan_speed * 0.25
