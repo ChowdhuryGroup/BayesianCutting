@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
 # Load points from the file
-file_path = "ImagesToTest/2024-12-10/trial 25/3.txt"  # Replace with the correct path
+file_path = "ImagesToTest/2024-12-17/trial 43/4.txt"  # Replace with the correct path
 points = np.loadtxt(file_path)
 
 # Ensure the loop is closed by appending the first point to the end
@@ -48,6 +48,8 @@ min_distance = np.min(distances)
 max_distance = np.max(distances)
 closest_point = points[np.argmin(distances)]
 furthest_point = points[np.argmax(distances)]
+rms = np.sqrt(np.mean((distances - np.mean(distances)) ** 2))
+perimeter = np.sum(np.sqrt(np.diff(x_coords) ** 2 + np.diff(y_coords) ** 2))
 
 # Plot the results
 plt.figure(figsize=(10, 10))
@@ -102,4 +104,6 @@ print(
     f"Furthest Point: ({furthest_point[0]:.2f}, {furthest_point[1]:.2f}) with Distance: {max_distance:.2f}"
 )
 print(f"Roundness(Max-min): {max_distance-min_distance:.2f}")
+print(f"Roundness RMS: {rms:.2f}")
 print(f"Average Radius: {np.mean(distances)}")
+print(f"Perimeter: {perimeter}")
