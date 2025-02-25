@@ -49,12 +49,12 @@ def outputConstraints(params):
     return True  # Constraint satisfied
 
 
-# Initialize the optimizer
+# Initialize the optimizer, this is where you set the optimizer strategies and such
 optimizer = Optimizer(
     dimensions=space,
     random_state=0,
-    acq_func="PI",
-    acq_func_kwargs={"xi": 0.1},
+    # acq_func="PI",
+    # acq_func_kwargs={"xi": 0.1},
 )  # Set random_state to None for randomization of outputs, generate next suggested parameters with random_state=0,1,2
 
 # Feed the initial data to the optimizer
