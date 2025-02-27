@@ -20,31 +20,38 @@ initial_parameters = []
 initial_quality_factors = []
 
 for trialNumber in range(1, len(parameterSheet)):
-    initial_parameters.append(list(parameterSheet[trialNumber, 1:6]))
-    initial_quality_factors.append(parameterSheet[trialNumber, 6])
+    initial_parameters.append(list(parameterSheet[trialNumber, 1:7]))
+    initial_quality_factors.append(parameterSheet[trialNumber, 7])
 # initial_parameters = np.array(initial_parameters)
 # initial_quality_factors = np.array(initial_quality_factors)
 print(initial_parameters)
 print(initial_quality_factors)
 # Define the parameter space
 space = [
-    Real(1, 3, name="Power"),  # Pulse energy (J)
+    Real(1.5, 3.05, name="Power"),  # Pulse energy (J)
     Real(
-        17, 21.5, name="FocalPosition"
+        18, 20.1, name="FocalPosition"
     ),  # Position of slide (mm) with respect to bessel characterization
     Real(1, 150, name="scan_speed"),  # Software Scan speed (mm/s)
     Real(0.001, 0.01, name="HatchSpacing"),  # Spacing of hatch (m)
     Integer(0, 40, name="Repeats"),  # Number of times to repeat circle (unitless)
+    Integer(85000, 150000, name="Compressor Setting"),  # Pharos Compressor Setting
 ]
 
 
 # Define some constraints
 def outputConstraints(params):
-    pulse_energy, focal_position, scan_speed, hatch_spacing, repeats = params
+    (
+        pulse_energy,
+        focal_position,
+        scan_speed,
+        hatch_spacing,
+        repeats,
+        compressor_setting,
+    ) = params
     # Test timelieness
-    if (0.5 * 2 * np.pi) * repeats * 10 * 4 / (
-        scan_speed * 0.25
-    ) > 150:  # Example maximum time requirement
+    # repeats * Diameter * pi * # of hatches * # of circles
+    if repeats * 0.25 * np.pi * 6 * 4 / scan_speed > 290:
         return False  # Constraint violated
     return True  # Constraint satisfied
 
@@ -66,8 +73,8 @@ for params, quality in zip(initial_parameters, initial_quality_factors):
 # Perform iterative optimization
 
 # Get the next suggested parameter set
-requested_points = 5
-suggested_params = optimizer.ask(n_points=requested_points, strategy="cl_min")
+requested_points = 4
+suggested_params = optimizer.ask(n_points=requested_points, strategy="cl_mean")
 # Limit those that are outside of our time constraint
 valid_suggestions = [p for p in suggested_params if outputConstraints(p)]
 invalid_suggestions = [p for p in suggested_params if not outputConstraints(p)]
@@ -103,12 +110,13 @@ tested_quality_factors = np.array(optimizer.yi)
 # print("\nAll Parameters Tested:")
 # for params, quality in zip(optimizer.Xi, [-q for q in optimizer.yi]):
 #    print(f"Parameters: {params}, Quality Factor: {quality:.3f}")
+
+
+# Print parameters
+
 print("\nSuggested Next Parameters:")
 for i in range(len(suggested_params)):
-    print(
-        f"Power: {suggested_params[i][0]*20000/suggested_params[i][1]}",
-        suggested_params[i],
-    )
+    print("\t".join(map(str, suggested_params[i])))
 
 # Plot quality factor vs iteration
 plt.figure(figsize=(8, 6))
@@ -125,7 +133,6 @@ plt.legend()
 plt.show()
 
 
-"""
 # Visualizing optimization process: https://scikit-optimize.github.io/stable/auto_examples/plots/visualizing-results.html
 plot_evaluations(optimizer.get_result())
 plt.show()
@@ -135,7 +142,6 @@ plt.show()
 
 plot_convergence(optimizer.get_result())
 plt.show()
-"""
 
 
 def plot_acquisition_2D_slice(optimizer, space, dim_x, dim_y, fixed_params):
