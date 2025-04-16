@@ -24,7 +24,12 @@ element_path = 'element1.hatch'  # Replace with actual element path from BeamCon
 
 # Start BeamServer via CLI
 print("Starting BeamServer...")
-subprocess.call([BEAMSERVER_PATH, "1"])
+subprocess.Popen([
+    r"C:\Program Files\HALsoftware\BeamServer.exe",
+    "1"
+],
+cwd=r"C:\Program Files\HALsoftware"
+)
 time.sleep(2)  # Give time to start
 
 def send_cmd(cmd, s):
