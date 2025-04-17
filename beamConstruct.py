@@ -11,7 +11,7 @@ PORT = 11350
 BEAMSERVER_PATH = r'C:\Program Files\HALsoftware\Beamserver.exe'
 
 # Project settings
-base_project = 'circle_base.beamp'
+base_project = r'C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-17 messing With Beamserver\baseTemplate.beamp'
 output_template = 'circle_speed{speed}_spacing{spacing}_hatch{hatch}.beamp'
 
 # Sweep parameters
@@ -45,21 +45,16 @@ def send_cmd(cmd, s, expect_response = True):
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
 
-    for speed in speeds:
-        for spacing in spacings:
-            for hatch in hatch_counts:
-                print(f"\nCreating config: Speed={speed}, Spacing={spacing}, HatchCount={hatch}")
-                send_cmd(f'LOAD_PROJECT {base_project}', s)
-                send_cmd(f'SET_PEN_PARAM pen1.mark_speed {speed}', s)
-                send_cmd(f'SET_ELEMENT_PARAM {element_path}.spacing {spacing}', s)
-                send_cmd(f'SET_ELEMENT_PARAM {element_path}.repetitions {hatch}', s)
 
-                output_name = output_template.format(speed=speed, spacing=spacing, hatch=hatch)
-                send_cmd(f'SAVE_PROJECT {output_name}', s)
+    print(send_cmd(f'CmdLoadPrj {base_project}', s))
+    print(send_cmd("CmdAddCircle",s))
+
+    output_name = r'C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-17 messing With Beamserver\test.beamp'
+    send_cmd(f'CmdSavePrj {output_name}', s)
 
     # Exit UI
     print("\nSending EXITUI...")
-    send_cmd('ExitUI', s,expect_response=False)
+    #send_cmd('ExitUI', s,expect_response=False)
 
 
 print("\n✅ All done!")
