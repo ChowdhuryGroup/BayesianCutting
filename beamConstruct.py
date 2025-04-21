@@ -37,7 +37,7 @@ cwd=r"C:\Program Files\HALsoftware"
 time.sleep(2)  # Give time to start
 
 def send_cmd(cmd, s, expect_response = True):
-    print(f"> {cmd}")
+    #print(f"> {cmd}") #Uncomment line to see commands being sent
     s.sendall((cmd + '\n').encode())
     time.sleep(0.05)
     if expect_response:
@@ -51,6 +51,30 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     print(send_cmd(f'CmdLoadPrj {base_project}', s))
     time.sleep(1)
 
+    #Lets map out the ID of each Hatch
+    name_uid_map = {}
+    index = 0
+
+    while True:
+        # Retrieve the element name at the current index
+        name_response = send_cmd(f"CmdListName {index}",s)
+        if name_response.startswith("ERROR"):
+            break  # No more elements
+        name = name_response.split("\n")[1].strip()
+
+        # Retrieve the UID at the same index
+        uid_response = send_cmd(f"CmdListUID {index}",s)
+        if uid_response.startswith("ERROR"):
+            break  # No more UIDs
+        uid = uid_response.split("\n")[1].strip()
+
+        # Map the name to the UID
+        name_uid_map[name] = uid
+        index += 1
+
+
+    print(name_uid_map)
+
     #Set repeats
     for element in elements:
         send_cmd(f"CmdSelEntName {element} Hatch",s)
@@ -58,7 +82,14 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         send_cmd(f"CmdSelEntName {element}",s )
         send_cmd(f"CmdSetLoopRepeat {repeats}",s)
 
-    
+    #Configure Hatch for only the hatches
+
+    for elementName,id in name_uid_map.items():
+        if "Hatch" in elementName:
+            send_cmd(f"CmdSetHatchDist {hatch_distance*1000}",s)
+            send_cmd("CmdSetHatchStyle inner",s)
+            send_cmd(f"CmdSetHatch {id}",s)        
+
     #Set Pen speed
     send_cmd(f"CmdSetPenMSpeed 0 {laser_speed*1000}",s) #This command takes speed in units of microns per second
 
