@@ -4,7 +4,7 @@ from scipy.interpolate import interp1d
 import os
 from scipy.interpolate import splprep, splev
 
-dir = "ImagesToTest/2025-02-24/trial 33/"
+dir = "ImagesToTest/2025-02-24/trial 61/"
 print(dir)
 print(os.listdir(dir))
 

@@ -2,6 +2,7 @@ from skopt import Optimizer
 from skopt.space import Real, Integer
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 import pandas
 from skopt.plots import (
     plot_evaluations,
@@ -35,7 +36,7 @@ space = [
     Real(1, 150, name="scan_speed"),  # Software Scan speed (mm/s)
     Real(0.001, 0.01, name="HatchSpacing"),  # Spacing of hatch (m)
     Integer(0, 40, name="Repeats"),  # Number of times to repeat circle (unitless)
-    Integer(85000, 150000, name="Compressor Setting"),  # Pharos Compressor Setting
+    Integer(85000, 200000, name="Compressor Setting"),  # Pharos Compressor Setting
 ]
 
 
@@ -51,7 +52,7 @@ def outputConstraints(params):
     ) = params
     # Test timelieness
     # repeats * Diameter * pi * # of hatches * # of circles
-    if repeats * 0.25 * np.pi * 6 * 4 / scan_speed > 290:
+    if repeats * 0.25 * np.pi * 6 * 4 / scan_speed > 350:
         return False  # Constraint violated
     return True  # Constraint satisfied
 
@@ -195,6 +196,20 @@ def plot_acquisition_2D_slice(optimizer, space, dim_x, dim_y, fixed_params):
     )
     plt.show()
 
+    plt.legend()
+    # Scatterplot of tested points
+    tested_x = [p[dim_x] for p in optimizer.Xi]
+    tested_y = [p[dim_y] for p in optimizer.Xi]
+    plt.scatter(
+        tested_x,
+        tested_y,
+        c="red",
+        marker="o",
+        edgecolors="black",
+        label="Tested Points",
+    )
+    plt.show()
+
 
 def get_fixed_params(strategy="best"):
     """
@@ -213,6 +228,7 @@ def get_fixed_params(strategy="best"):
     else:
         raise ValueError("Invalid strategy. Use 'best' or 'average'.")
     print(f"Fixed Parameters: {fixed_params}")
+
     return fixed_params
 
 
@@ -226,3 +242,13 @@ best_quality = -optimizer.yi[best_index]
 print("\nBest Predicted Parameters:")
 print(f"  Parameters: {best_params}")
 print(f"  Quality Factor: {best_quality:.3f}")
+
+tested_params = np.array(optimizer.Xi)
+df = pandas.DataFrame(tested_params, columns=[dim.name for dim in space])
+
+plt.figure(figsize=(10, 6))
+sns.histplot(df, kde=True, bins=15, alpha=0.5)
+plt.xlabel("Parameter Values")
+plt.ylabel("Frequency of Sampling")
+plt.title("Distribution of Tested Parameter Values")
+plt.show()
