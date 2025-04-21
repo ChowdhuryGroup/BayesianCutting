@@ -15,11 +15,10 @@ base_project = r'C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-17 messin
 output_template = 'circle_speed{speed}_spacing{spacing}_hatch{hatch}.beamp'
 
 #Trial Settings
-trial_number = "01"
-laser_speed = 3.5 #mm/s
-repeats = 25
-hatches = 5
-hatch_distance = .005
+trial_number = "011"
+laser_speed = 35.5 #mm/s
+repeats = 66
+hatch_distance = .012
 
 #Names in the beamproject of the elements
 elements = ["Circle 1","Circle 2","Circle 3","Circle 4","Rectangle 1","Rectangle 2","Rectangle 3", "Rectangle 4"]
