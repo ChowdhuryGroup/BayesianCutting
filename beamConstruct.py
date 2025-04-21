@@ -16,10 +16,10 @@ output_template = 'circle_speed{speed}_spacing{spacing}_hatch{hatch}.beamp'
 
 #Trial Settings
 trial_number = "01"
-laser_speed = "3" #mm/s
-repeats = "5"
-hatches = "5"
-hatch_distance = ".005"
+laser_speed = 3.5 #mm/s
+repeats = 25
+hatches = 5
+hatch_distance = .005
 
 #Names in the beamproject of the elements
 elements = ["Circle 1","Circle 2","Circle 3","Circle 4","Rectangle 1","Rectangle 2","Rectangle 3", "Rectangle 4"]
@@ -47,15 +47,17 @@ def send_cmd(cmd, s, expect_response = True):
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
 
-    print(send_cmd("CmdGetElemNum",s))
-    time.sleep(2)
-    print(send_cmd(f'CmdLoadPrj {base_project}', s))
-    print(send_cmd("CmdGetElemNum",s))
 
-    #Set Hatch distance, hatch count and repeats
+    print(send_cmd(f'CmdLoadPrj {base_project}', s))
+    time.sleep(1)
+
+    #Set repeats
     for element in elements:
-        send_cmd(f"CmdSelEntName {element}",s)
-        send_cmd(f"CmdSetHatchDist {hatch_distance*1000}")
+        send_cmd(f"CmdSelEntName {element} Hatch",s)
+        send_cmd(f"CmdSetLoopRepeat {repeats}",s)
+        send_cmd(f"CmdSelEntName {element}",s )
+        send_cmd(f"CmdSetLoopRepeat {repeats}",s)
+
     
     #Set Pen speed
     send_cmd(f"CmdSetPenMSpeed 0 {laser_speed*1000}",s) #This command takes speed in units of microns per second
@@ -69,7 +71,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
     #Save new Trial
     output_name = f'C:\\Users\\twardowski.6a\\Documents\\GlassCutting\\2025-04-17 messing With Beamserver\\test{trial_number}.beamp'
-    send_cmd(f'CmdSavePrj {output_name}', s)
+    #send_cmd(f'CmdSavePrj {output_name}', s)
 
     while True:
         i = input("Enter command:")
