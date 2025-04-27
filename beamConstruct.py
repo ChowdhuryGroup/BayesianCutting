@@ -97,18 +97,19 @@ def generateBeampFile(trial_number,laser_speed,repeats,hatch_distance,outputFile
 
         #Configure Hatch for only the hatches
         for elementName,id in name_uid_map.items():
-            #Set Hatch spacing
-            if "Hatch" in elementName:
-                send_cmd(f"CmdSetHatchDist {hatch_distance*1000}",s)
-                send_cmd("CmdSetHatchStyle inner",s)
-                send_cmd(f"CmdSetHatch {id}",s) 
             #Set Repeats
             if "Label" not in elementName:
                 print(f"CmdSelEntName {elementName}")
                 print(f"CmdSetLoopRepeat {repeats}")
                 send_cmd(f"CmdSelEntName {elementName}",s )
                 time.sleep(.05)
-                send_cmd(f"CmdSetLoopRepeat {repeats}",s)       
+                send_cmd(f"CmdSetLoopRepeat {repeats}",s)  
+            #Set Hatch spacing
+            if "Hatch" in elementName:
+                send_cmd(f"CmdSetHatchDist {hatch_distance*1000}",s)
+                send_cmd("CmdSetHatchStyle inner",s)
+                send_cmd(f"CmdSetHatch {id}",s) 
+     
 
         #Set Pen speed
         send_cmd(f"CmdSetPenMSpeed 0 {laser_speed*1000}",s) #This command takes speed in units of microns per second
@@ -130,8 +131,8 @@ def generateBeampFile(trial_number,laser_speed,repeats,hatch_distance,outputFile
         print("\nSending EXITUI...")
         #send_cmd('ExitUI', s,expect_response=False)
 
-ouputDirectory = "C:\\Users\\twardowski.6a\\Documents\\GlassCutting\\2025-04-17 messing With Beamserver\\"
+#ouputDirectory = "C:\\Users\\twardowski.6a\\Documents\\GlassCutting\\2025-04-17 messing With Beamserver\\"
 
-path = r"C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-27\Templates"
-generateBeampFile(56,20,3,.012,path)
+#path = r"C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-27\Templates"
+#generateBeampFile(56,20,333,.012,path)
 
