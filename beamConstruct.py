@@ -89,18 +89,26 @@ def generateBeampFile(trial_number,laser_speed,repeats,hatch_distance,outputFile
         print(name_uid_map)
 
         #Set repeats
-        for element in elements:
-            send_cmd(f"CmdSelEntName {element} Hatch",s)
-            send_cmd(f"CmdSetLoopRepeat {repeats}",s)
-            send_cmd(f"CmdSelEntName {element}",s )
-            send_cmd(f"CmdSetLoopRepeat {repeats}",s)
+        # for element in elements:
+        #     send_cmd(f"CmdSelEntName {element} Hatch",s)
+        #     send_cmd(f"CmdSetLoopRepeat {repeats}",s)
+        #     send_cmd(f"CmdSelEntName {element}",s )
+        #     send_cmd(f"CmdSetLoopRepeat {repeats}",s)
 
         #Configure Hatch for only the hatches
         for elementName,id in name_uid_map.items():
+            #Set Hatch spacing
             if "Hatch" in elementName:
                 send_cmd(f"CmdSetHatchDist {hatch_distance*1000}",s)
                 send_cmd("CmdSetHatchStyle inner",s)
-                send_cmd(f"CmdSetHatch {id}",s)        
+                send_cmd(f"CmdSetHatch {id}",s) 
+            #Set Repeats
+            if "Label" not in elementName:
+                print(f"CmdSelEntName {elementName}")
+                print(f"CmdSetLoopRepeat {repeats}")
+                send_cmd(f"CmdSelEntName {elementName}",s )
+                time.sleep(.05)
+                send_cmd(f"CmdSetLoopRepeat {repeats}",s)       
 
         #Set Pen speed
         send_cmd(f"CmdSetPenMSpeed 0 {laser_speed*1000}",s) #This command takes speed in units of microns per second
@@ -114,15 +122,16 @@ def generateBeampFile(trial_number,laser_speed,repeats,hatch_distance,outputFile
         send_cmd(f'CmdSavePrj {output_name}', s)
 
         #Uncomment to test commands
-        # while True:
-        #     i = input("Enter command:")
-        #     print(send_cmd(f"{i}", s))
+        while True:
+            i = input("Enter command:")
+            print(send_cmd(f"{i}", s))
 
         # Exit UI
         print("\nSending EXITUI...")
-        send_cmd('ExitUI', s,expect_response=False)
+        #send_cmd('ExitUI', s,expect_response=False)
 
 ouputDirectory = "C:\\Users\\twardowski.6a\\Documents\\GlassCutting\\2025-04-17 messing With Beamserver\\"
 
-
+path = r"C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-27\Templates"
+generateBeampFile(56,20,3,.012,path)
 
