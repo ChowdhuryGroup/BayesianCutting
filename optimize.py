@@ -10,6 +10,7 @@ from skopt.plots import (
     plot_convergence,
     plot_gaussian_process,
 )
+import beamConstruct
 
 parameterSheet = pandas.read_excel(
     "ImagesToTest/2025-02-24/parametersVsQualityLocal2025-02-24.xlsx",
