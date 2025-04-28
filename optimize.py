@@ -11,11 +11,11 @@ from skopt.plots import (
     plot_gaussian_process,
 )
 import beamConstruct
+import openpyxl
 
+parameterFilepath = r"C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-27\TestReadWrite.xlsx"
 
-parameterFilepath = "ImagesToTest/2025-02-24/parametersVsQualityLocal2025-02-24.xlsx"
-
-# Define the parameter space
+# Define the parameter space min and max
 space = [
     Real(1.5, 3.05, name="Power"),  # Pulse energy (J)
     Real(
@@ -41,8 +41,8 @@ for trialNumber in range(1, len(parameterSheet)):
     initial_parameters.append(list(parameterSheet[trialNumber, 1:len(space)+1]))
     initial_quality_factors.append(parameterSheet[trialNumber, len(space)+1])
 
-print(initial_parameters)
-print(initial_quality_factors)
+print("Input Parameters: ",initial_parameters)
+print("Quality Parameters: ", initial_quality_factors)
 
 
 
@@ -99,18 +99,6 @@ while len(invalid_suggestions) > 0:
 suggested_params = valid_suggestions
 
 # Print the suggested parameters
-"""
-for i in range(len(suggested_params)):
-    print(f"Suggested Parameters for Trial {len(initial_parameters) + i + 1}:")
-    print(
-        f"Pulse Energy: {suggested_params[i][0]:.7e} J Based off PP: {suggested_params[i][0]*20000/suggested_params[i][1]} W"
-    )
-    print(f"Pulse Picker: {suggested_params[i][1]}")
-    print(f"Focal Position: {suggested_params[i][2]:.2f} mm")
-    print(f"Scan Speed: {suggested_params[i][3]:.2f} mm/s")
-    print(f"Hatch Distance: {suggested_params[i][4]:.3f} mm")
-    print(f"Repeats: {suggested_params[i][5]:.2f}\n")
-"""
 
 tested_parameters = np.array(optimizer.Xi)
 tested_quality_factors = np.array(optimizer.yi)
@@ -124,6 +112,29 @@ print("\nSuggested Next Parameters:")
 for i in range(len(suggested_params)):
     print("\t".join(map(str, suggested_params[i])))
 
+#Lets write these parameters straight into the excel sheet
+
+# Convert suggested_params to a DataFrame
+new_data = pandas.DataFrame(suggested_params)
+
+# Load the workbook and select the sheet
+workbook = openpyxl.load_workbook(parameterFilepath)
+sheet = workbook["Parameters"]
+
+
+
+start_trial_number = sheet.cell(row=sheet.max_row, column=1).value
+
+
+# Append the new data to the sheet
+for i, row in enumerate(new_data.itertuples(index=False, name=None), start=start_trial_number + 1):
+    sheet.append([i] + list(row))
+
+
+# Save the workbook
+workbook.save(parameterFilepath)
+
+exit()
 # Plot quality factor vs iteration
 plt.figure(figsize=(8, 6))
 plt.plot(
