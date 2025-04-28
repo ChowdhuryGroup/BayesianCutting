@@ -12,22 +12,9 @@ from skopt.plots import (
 )
 import beamConstruct
 
-parameterSheet = pandas.read_excel(
-    "ImagesToTest/2025-02-24/parametersVsQualityLocal2025-02-24.xlsx",
-    sheet_name="Parameters",
-).to_numpy()
 
+parameterFilepath = "ImagesToTest/2025-02-24/parametersVsQualityLocal2025-02-24.xlsx"
 
-initial_parameters = []
-initial_quality_factors = []
-
-for trialNumber in range(1, len(parameterSheet)):
-    initial_parameters.append(list(parameterSheet[trialNumber, 1:7]))
-    initial_quality_factors.append(parameterSheet[trialNumber, 7])
-# initial_parameters = np.array(initial_parameters)
-# initial_quality_factors = np.array(initial_quality_factors)
-print(initial_parameters)
-print(initial_quality_factors)
 # Define the parameter space
 space = [
     Real(1.5, 3.05, name="Power"),  # Pulse energy (J)
@@ -38,7 +25,25 @@ space = [
     Real(0.001, 0.01, name="HatchSpacing"),  # Spacing of hatch (m)
     Integer(0, 40, name="Repeats"),  # Number of times to repeat circle (unitless)
     Integer(85000, 200000, name="Compressor Setting"),  # Pharos Compressor Setting
-]
+]   
+
+
+parameterSheet = pandas.read_excel(
+    parameterFilepath,
+    sheet_name="Parameters",
+).to_numpy()
+
+
+initial_parameters = []
+initial_quality_factors = []
+
+for trialNumber in range(1, len(parameterSheet)):
+    initial_parameters.append(list(parameterSheet[trialNumber, 1:len(space)+1]))
+    initial_quality_factors.append(parameterSheet[trialNumber, len(space)+1])
+
+print(initial_parameters)
+print(initial_quality_factors)
+
 
 
 # Define some constraints
@@ -115,7 +120,6 @@ tested_quality_factors = np.array(optimizer.yi)
 
 
 # Print parameters
-
 print("\nSuggested Next Parameters:")
 for i in range(len(suggested_params)):
     print("\t".join(map(str, suggested_params[i])))
