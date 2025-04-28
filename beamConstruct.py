@@ -43,11 +43,14 @@ def send_cmd(cmd, s, expect_response = True):
 
 def generateBeampFile(trial_number,laser_speed,repeats,hatch_distance,outputFileDirectory):
     '''
-    trial_number will be written as label on beam path and as saved file name
+    trial_number will be written as label on beam path and as saved file name. If only one character is supplied, a zero will be prepended (Some weird beamconstruct rule that it needs to be two characters)
     laser_speed in mm/s
     repeats 0 marks the sample only one time, 4 will scan over the sample 5 times
     hatch_distance distance between interior hatches  
     '''
+
+    trial_number = f"0{trial_number}" if len(str(trial_number)) == 1 else trial_number
+    repeats = f"0{repeats}" if len(str(repeats)) == 1 else repeats
     # Start BeamServer via CLI
     print("Starting BeamServer...")
     # The command parameter 1 – show drawing area (the big area in the middle where vector data are drawn) adds to 524288 – the warning-dialogue on start-up is disabled; so the parameter desired is 524289
@@ -123,5 +126,5 @@ def generateBeampFile(trial_number,laser_speed,repeats,hatch_distance,outputFile
 #ouputDirectory = "C:\\Users\\twardowski.6a\\Documents\\GlassCutting\\2025-04-17 messing With Beamserver\\"
 
 #path = r"C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-27\Templates"
-#generateBeampFile(56,20,333,.012,path)
+#generateBeampFile("03",20,333,.012,path)
 
