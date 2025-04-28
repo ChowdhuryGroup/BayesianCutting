@@ -102,7 +102,7 @@ def generateBeampFile(trial_number,laser_speed,repeats,hatch_distance,outputFile
 
         #Set Pen speed
         send_cmd(f"CmdSetPenMSpeed 0 {laser_speed*1000}",s) #This command takes speed in units of microns per second
-
+        time.sleep(.1)
         # Set Label Mark Name
         send_cmd("CmdSelEntName Label", s)
         send_cmd(f"CmdSetElemText {trial_number}", s)

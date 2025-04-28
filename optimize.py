@@ -14,7 +14,7 @@ import beamConstruct
 import openpyxl
 
 parameterFilepath = r"C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-27\TestReadWrite.xlsx"
-
+beamPTemplates = r"C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-27\Templates"
 # Define the parameter space min and max
 space = [
     Real(1.5, 3.05, name="Power"),  # Pulse energy (J)
@@ -116,6 +116,7 @@ for i in range(len(suggested_params)):
 
 # Convert suggested_params to a DataFrame
 new_data = pandas.DataFrame(suggested_params)
+print(new_data)
 
 # Load the workbook and select the sheet
 workbook = openpyxl.load_workbook(parameterFilepath)
@@ -126,10 +127,10 @@ sheet = workbook["Parameters"]
 start_trial_number = sheet.cell(row=sheet.max_row, column=1).value
 
 
-# Append the new data to the sheet
+# Append the new data to the sheet and create BeamConstruct Templates
 for i, row in enumerate(new_data.itertuples(index=False, name=None), start=start_trial_number + 1):
     sheet.append([i] + list(row))
-
+    beamConstruct.generateBeampFile(i,row[2],row[4],row[3],beamPTemplates)
 
 # Save the workbook
 workbook.save(parameterFilepath)
