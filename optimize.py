@@ -13,18 +13,18 @@ from skopt.plots import (
 import beamConstruct
 import openpyxl
 
-parameterFilepath = r"C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-27\TestReadWrite.xlsx"
-beamPTemplates = r"C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-27\Templates"
+parameterFilepath = r"C:\Users\twardowski.6a\OneDrive - The Ohio State University\Chowdhury Lab (ALL) - Lab Files\BayesianGlassCutting\2025-04-29\remoteParameterMeasurement2025-04-29.xlsx"
+beamPTemplates = r"C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-29\Templates"
 # Define the parameter space min and max
 space = [
     Real(1.5, 3.05, name="Power"),  # Pulse energy (J)
     Real(
         18, 20.1, name="FocalPosition"
     ),  # Position of slide (mm) with respect to bessel characterization
-    Real(1, 150, name="scan_speed"),  # Software Scan speed (mm/s)
+    Real(1, 250, name="scan_speed"),  # Software Scan speed (mm/s)
     Real(0.001, 0.01, name="HatchSpacing"),  # Spacing of hatch (m)
-    Integer(0, 40, name="Repeats"),  # Number of times to repeat circle (unitless)
-    Integer(85000, 200000, name="Compressor Setting"),  # Pharos Compressor Setting
+    Integer(0, 200, name="Repeats"),  # Number of times to repeat circle (unitless)
+    Integer(1000, 200000, name="Compressor Setting"),  # Pharos Compressor Setting
 ]   
 
 

@@ -35,6 +35,7 @@ elements = [
 
 def send_cmd(cmd, s, expect_response = True):
     #print(f"> {cmd}") #Uncomment line to see commands being sent
+
     s.sendall((cmd + '\n').encode())
     time.sleep(0.05)
     if expect_response:
@@ -59,7 +60,7 @@ def generateBeampFile(trial_number,laser_speed,repeats,hatch_distance,outputFile
         [r"C:\Program Files\HALsoftware\BeamServer.exe", f"{524288+1+2+4+8}"],
         cwd=r"C:\Program Files\HALsoftware",
     )
-    time.sleep(2)  # Give time to start
+    time.sleep(8)  # Give time to start
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((HOST, PORT))
 
@@ -125,6 +126,10 @@ def generateBeampFile(trial_number,laser_speed,repeats,hatch_distance,outputFile
 
 #ouputDirectory = "C:\\Users\\twardowski.6a\\Documents\\GlassCutting\\2025-04-17 messing With Beamserver\\"
 
-#path = r"C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-27\Templates"
-#generateBeampFile("03",20,333,.012,path)
+# path = r"C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-29\Templates"
+# generateBeampFile("01", 1,6,.001,path)
+# generateBeampFile("02", 20,15,.002,path)
+# generateBeampFile("03", 4,10,.003,path)
+# generateBeampFile("04", 50,100,.004,path)
 
+#generateBeampFile(trial,laserspeed,repeats,hatchdistance,output)
