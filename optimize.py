@@ -41,6 +41,7 @@ for trialNumber in range(1, len(parameterSheet)):
     initial_parameters.append(list(parameterSheet[trialNumber, 1:len(space)+1]))
     initial_quality_factors.append(parameterSheet[trialNumber, len(space)+1])
 
+print("NUMBER OF TRIALS: ", len(initial_parameters))
 print("Input Parameters: ",initial_parameters)
 print("Quality Parameters: ", initial_quality_factors)
 
@@ -96,7 +97,13 @@ while len(invalid_suggestions) > 0:
     valid_suggestions = [p for p in suggested_params if outputConstraints(p)]
     invalid_suggestions = [p for p in suggested_params if not outputConstraints(p)]
 
+
+hatch_spacing_index = [i for i, dim in enumerate(space) if dim.name == "HatchSpacing"][0]
+for paramNum in range(len(valid_suggestions)):
+    valid_suggestions[paramNum][hatch_spacing_index] = round(valid_suggestions[paramNum][hatch_spacing_index], 3)
+
 suggested_params = valid_suggestions
+
 
 # Print the suggested parameters
 
