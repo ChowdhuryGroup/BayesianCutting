@@ -4,7 +4,8 @@ from scipy.interpolate import interp1d
 import os
 from scipy.interpolate import splprep, splev
 
-dir = "ImagesToTest/2025-02-24/trial 61/"
+trial = 58
+dir = f"/Users/conradkuz/Library/CloudStorage/OneDrive-SharedLibraries-TheOhioStateUniversity/Chowdhury Lab (ALL) - Documents/Lab Files/BayesianGlassCutting/2025-04-29/trial images/trial {trial}"
 print(dir)
 print(os.listdir(dir))
 
