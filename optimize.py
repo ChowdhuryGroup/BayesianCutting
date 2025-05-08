@@ -12,14 +12,17 @@ from skopt.plots import (
 )
 import beamConstruct
 import openpyxl
+import os
+import time
 
 parameterFilepath = r"C:\Users\twardowski.6a\OneDrive - The Ohio State University\Chowdhury Lab (ALL) - Lab Files\BayesianGlassCutting\2025-04-29\remoteParameterMeasurement2025-04-29.xlsx"
 beamPTemplates = r"C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-29\Templates"
 # Define the parameter space min and max
 space = [
-    Real(1.5, 3.05, name="Power"),  # Pulse energy (J)
+    Real(.000081, .000153, name="Pulse Energy"),  # Pulse energy (J)
+    Integer(1,8,name="PulsePicker"),
     Real(
-        18, 20.1, name="FocalPosition"
+        17.2, 20.1, name="FocalPosition"
     ),  # Position of slide (mm) with respect to bessel characterization
     Real(1, 250, name="scan_speed"),  # Software Scan speed (mm/s)
     Real(0.001, 0.01, name="HatchSpacing"),  # Spacing of hatch (m)
@@ -37,9 +40,9 @@ parameterSheet = pandas.read_excel(
 initial_parameters = []
 initial_quality_factors = []
 
-for trialNumber in range(1, len(parameterSheet)):
-    initial_parameters.append(list(parameterSheet[trialNumber, 1:len(space)+1]))
-    initial_quality_factors.append(parameterSheet[trialNumber, len(space)+1])
+for trialNumber in range(0, len(parameterSheet)):
+    initial_parameters.append(list(parameterSheet[trialNumber, 2:len(space)+2]))
+    initial_quality_factors.append(parameterSheet[trialNumber, len(space)+2])
 
 print("NUMBER OF TRIALS: ", len(initial_parameters))
 print("Input Parameters: ",initial_parameters)
@@ -51,6 +54,7 @@ print("Quality Parameters: ", initial_quality_factors)
 def outputConstraints(params):
     (
         pulse_energy,
+        pulse_picker,
         focal_position,
         scan_speed,
         hatch_spacing,
@@ -136,13 +140,17 @@ start_trial_number = sheet.cell(row=sheet.max_row, column=1).value
 
 # Append the new data to the sheet and create BeamConstruct Templates
 for i, row in enumerate(new_data.itertuples(index=False, name=None), start=start_trial_number + 1):
-    sheet.append([i] + list(row))
-    beamConstruct.generateBeampFile(i,row[2],row[4],row[3],beamPTemplates)
+    sheet.append([i] +[row[0]*20000/row[1]] +list(row))
+    beamConstruct.generateBeampFile(i,row[3],row[5],row[4],beamPTemplates)
 
 # Save the workbook
 workbook.save(parameterFilepath)
 
-exit()
+# Update the file's access and modification times
+current_time = time.time()
+os.utime(parameterFilepath,(current_time,current_time))
+
+
 # Plot quality factor vs iteration
 plt.figure(figsize=(8, 6))
 plt.plot(
