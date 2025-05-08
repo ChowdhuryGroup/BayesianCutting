@@ -10,9 +10,29 @@ from skopt.plots import (
     plot_convergence,
     plot_gaussian_process,
 )
+import beamConstruct
+import openpyxl
+import os
+import time
+
+parameterFilepath = r"C:\Users\twardowski.6a\OneDrive - The Ohio State University\Chowdhury Lab (ALL) - Lab Files\BayesianGlassCutting\2025-04-29\remoteParameterMeasurement2025-04-29.xlsx"
+beamPTemplates = r"C:\Users\twardowski.6a\Documents\GlassCutting\2025-04-29\Templates"
+# Define the parameter space min and max
+space = [
+    Real(.000081, .000153, name="Pulse Energy"),  # Pulse energy (J)
+    Integer(1,8,name="PulsePicker"),
+    Real(
+        17.2, 20.1, name="FocalPosition"
+    ),  # Position of slide (mm) with respect to bessel characterization
+    Real(1, 250, name="scan_speed"),  # Software Scan speed (mm/s)
+    Real(0.001, 0.01, name="HatchSpacing"),  # Spacing of hatch (m)
+    Integer(0, 200, name="Repeats"),  # Number of times to repeat circle (unitless)
+    Integer(1000, 200000, name="Compressor Setting"),  # Pharos Compressor Setting
+]   
+
 
 parameterSheet = pandas.read_excel(
-    "ImagesToTest/2025-02-24/parametersVsQualityLocal2025-02-24.xlsx",
+    parameterFilepath,
     sheet_name="Parameters",
 ).to_numpy()
 
@@ -20,30 +40,21 @@ parameterSheet = pandas.read_excel(
 initial_parameters = []
 initial_quality_factors = []
 
-for trialNumber in range(1, len(parameterSheet)):
-    initial_parameters.append(list(parameterSheet[trialNumber, 1:7]))
-    initial_quality_factors.append(parameterSheet[trialNumber, 7])
-# initial_parameters = np.array(initial_parameters)
-# initial_quality_factors = np.array(initial_quality_factors)
-print(initial_parameters)
-print(initial_quality_factors)
-# Define the parameter space
-space = [
-    Real(1.5, 3.05, name="Power"),  # Pulse energy (J)
-    Real(
-        18, 20.1, name="FocalPosition"
-    ),  # Position of slide (mm) with respect to bessel characterization
-    Real(1, 150, name="scan_speed"),  # Software Scan speed (mm/s)
-    Real(0.001, 0.01, name="HatchSpacing"),  # Spacing of hatch (m)
-    Integer(0, 40, name="Repeats"),  # Number of times to repeat circle (unitless)
-    Integer(85000, 200000, name="Compressor Setting"),  # Pharos Compressor Setting
-]
+for trialNumber in range(0, len(parameterSheet)):
+    initial_parameters.append(list(parameterSheet[trialNumber, 2:len(space)+2]))
+    initial_quality_factors.append(parameterSheet[trialNumber, len(space)+2])
+
+print("NUMBER OF TRIALS: ", len(initial_parameters))
+print("Input Parameters: ",initial_parameters)
+print("Quality Parameters: ", initial_quality_factors)
+
 
 
 # Define some constraints
 def outputConstraints(params):
     (
         pulse_energy,
+        pulse_picker,
         focal_position,
         scan_speed,
         hatch_spacing,
@@ -90,21 +101,15 @@ while len(invalid_suggestions) > 0:
     valid_suggestions = [p for p in suggested_params if outputConstraints(p)]
     invalid_suggestions = [p for p in suggested_params if not outputConstraints(p)]
 
+
+hatch_spacing_index = [i for i, dim in enumerate(space) if dim.name == "HatchSpacing"][0]
+for paramNum in range(len(valid_suggestions)):
+    valid_suggestions[paramNum][hatch_spacing_index] = round(valid_suggestions[paramNum][hatch_spacing_index], 3)
+
 suggested_params = valid_suggestions
 
+
 # Print the suggested parameters
-"""
-for i in range(len(suggested_params)):
-    print(f"Suggested Parameters for Trial {len(initial_parameters) + i + 1}:")
-    print(
-        f"Pulse Energy: {suggested_params[i][0]:.7e} J Based off PP: {suggested_params[i][0]*20000/suggested_params[i][1]} W"
-    )
-    print(f"Pulse Picker: {suggested_params[i][1]}")
-    print(f"Focal Position: {suggested_params[i][2]:.2f} mm")
-    print(f"Scan Speed: {suggested_params[i][3]:.2f} mm/s")
-    print(f"Hatch Distance: {suggested_params[i][4]:.3f} mm")
-    print(f"Repeats: {suggested_params[i][5]:.2f}\n")
-"""
 
 tested_parameters = np.array(optimizer.Xi)
 tested_quality_factors = np.array(optimizer.yi)
@@ -114,10 +119,37 @@ tested_quality_factors = np.array(optimizer.yi)
 
 
 # Print parameters
-
 print("\nSuggested Next Parameters:")
 for i in range(len(suggested_params)):
     print("\t".join(map(str, suggested_params[i])))
+
+#Lets write these parameters straight into the excel sheet
+
+# Convert suggested_params to a DataFrame
+new_data = pandas.DataFrame(suggested_params)
+print(new_data)
+
+# Load the workbook and select the sheet
+workbook = openpyxl.load_workbook(parameterFilepath)
+sheet = workbook["Parameters"]
+
+
+
+start_trial_number = sheet.cell(row=sheet.max_row, column=1).value
+
+
+# Append the new data to the sheet and create BeamConstruct Templates
+for i, row in enumerate(new_data.itertuples(index=False, name=None), start=start_trial_number + 1):
+    sheet.append([i] +[row[0]*20000/row[1]] +list(row))
+    beamConstruct.generateBeampFile(i,row[3],row[5],row[4],beamPTemplates)
+
+# Save the workbook
+workbook.save(parameterFilepath)
+
+# Update the file's access and modification times
+current_time = time.time()
+os.utime(parameterFilepath,(current_time,current_time))
+
 
 # Plot quality factor vs iteration
 plt.figure(figsize=(8, 6))
