@@ -73,23 +73,36 @@ tested_quality_factors = np.array(optimizer.yi)
 plt.figure(figsize=(8, 6))
 plt.plot(
     range(1, len(tested_quality_factors) + 1),
-    tested_quality_factors,
+    -tested_quality_factors,
     marker="o",
     label="Quality Factor",
 )
-plt.xlabel("Iteration")
-plt.ylabel("Quality Factor")
+plt.xlabel("Trial")
+plt.ylabel("Quality Score (0-1)")
 plt.title("Optimization Progress")
-plt.legend()
 plt.show()
 
 
-# Visualizing optimization process: https://scikit-optimize.github.io/stable/auto_examples/plots/visualizing-results.html
-plot_evaluations(optimizer.get_result())
-plt.show()
+# Visualizing optimization process: https://scikit-optimize.github.io/stable/auto_examples/plots/visualizing-results.html#
+# plot_evaluations(optimizer.get_result())
+# plt.show()
 
-plot_objective(optimizer.get_result())
-plt.show()
+# plot_objective(optimizer.get_result())
+# plt.show()
 
 plot_convergence(optimizer.get_result())
+plt.show()
+
+# Plot convergence with better labels
+mins = np.array(
+    [
+        np.min(tested_quality_factors[: i + 1])
+        for i in range(len(tested_quality_factors))
+    ]
+)
+
+plt.plot(range(1, len(tested_quality_factors) + 1), -mins, marker="o")
+plt.xlabel("Trial")
+plt.ylabel("Best Quality Score (0-1)")
+plt.title("Optimization Convergence")
 plt.show()
