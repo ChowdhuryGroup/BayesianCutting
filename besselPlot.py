@@ -10,6 +10,7 @@ from scipy import ndimage
 # Run this in at a directory with images of bessel beam along propogation direction. (right now in mm) e.g. 4.60.tif, 4.55.tif,4.50.tif etc.
 
 imageDirectory = r"/Users/conradkuz/Library/CloudStorage/OneDrive-SharedLibraries-TheOhioStateUniversity/Chowdhury Lab (ALL) - Glass cutting - Glass cutting/BayesianGlassCutting/2025-04-29/bessel characterization"
+imageDirectory = r"/Users/conradkuz/Library/CloudStorage/OneDrive-SharedLibraries-TheOhioStateUniversity/Chowdhury Lab (ALL) - Glass cutting - Glass cutting/BayesianGlassCutting/2025-02-25/bessel characterization"
 lineoutLength = 300
 micronPerPixel = 600 / 3324
 
@@ -30,7 +31,7 @@ def avgLineout(image, centerx, centery, linewidth=70, linelength=76):
 
 
 # Sets orientation and zero point of images
-FIRST_IMAGE_POSITION = 0
+FIRST_IMAGE_POSITION = 0  # 17.2
 images = []
 imageNames = []
 lineouts = []
@@ -70,10 +71,7 @@ print(imageNames)
 
 
 # normalize lineouts
-# lineouts = lineouts / np.max(lineouts)
-
-plt.plot(range(len(lineouts[0])), lineouts[50])
-plt.show()
+lineouts = lineouts / (np.max(lineouts))
 
 yVals = np.linspace(0, lineoutLength, num=lineoutLength + 1) * micronPerPixel
 
@@ -92,10 +90,16 @@ graph = ax.pcolormesh(
     shading="gouraud",
     cmap="jet",
 )
-cbar = fig.colorbar(graph, shrink=0.75, label="Relative Intensity")
+graph.set_clim(0, 1)
+# cbar = fig.colorbar(graph, shrink=0.75, label="Relative Intensity")
 # cbar.ax.set_ylabel(["0","0.25","Relative Intensity","0.75","1"])
+
+cbar = fig.colorbar(graph, shrink=0.75, label="Relative Intensity")
+cbar.set_ticks([0, 0.25, 0.5, 0.75, 1])
+
 ax.set_title("Bessel Beam Intensity Distribution")
 ax.set_xlabel("Propogation Distance (mm)")
 ax.set_ylabel("Width (µm)")
+# ax.set_xlim(0, 2)
 
 plt.show()
