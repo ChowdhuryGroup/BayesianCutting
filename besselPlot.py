@@ -1,3 +1,4 @@
+# %% Main load in
 # Author: Conrad Kuz - kuz.1@osu.edu
 # Date: 2023-09-07
 
@@ -31,7 +32,7 @@ def avgLineout(image, centerx, centery, linewidth=70, linelength=76):
 
 
 # Sets orientation and zero point of images
-FIRST_IMAGE_POSITION = 0  # 17.2
+FIRST_IMAGE_POSITION = 17  # 17.2
 images = []
 imageNames = []
 lineouts = []
@@ -69,7 +70,7 @@ for x in sorted(os.listdir(imageDirectory)):
 
 print(imageNames)
 
-
+# %% Make Plots
 # normalize lineouts
 lineouts = lineouts / (np.max(lineouts))
 
@@ -96,10 +97,17 @@ graph.set_clim(0, 1)
 
 cbar = fig.colorbar(graph, shrink=0.75, label="Relative Intensity")
 cbar.set_ticks([0, 0.25, 0.5, 0.75, 1])
+cbar.ax.set_ylabel("Relative Intensity", fontsize=14)
+cbar.ax.tick_params(labelsize=14)
 
-ax.set_title("Bessel Beam Intensity Distribution")
-ax.set_xlabel("Propogation Distance (mm)")
-ax.set_ylabel("Width (µm)")
-# ax.set_xlim(0, 2)
+ax.set_title("Bessel Beam Intensity Distribution", fontsize=16)
+ax.set_xlabel("Propogation Distance (mm)", fontsize=14)
+ax.set_ylabel("Width (µm)", fontsize=14)
+
+ax.tick_params(axis="both", which="major", labelsize=12)
+
+ax.set_xlim(0, 4)
 
 plt.show()
+
+# %%
