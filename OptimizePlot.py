@@ -124,12 +124,22 @@ plt.show()
 # Lets create a grid of graphs
 param_names = [
     "Pulse Energy",
-    "PulsePicker",
-    "FocalPosition",
-    "scan_speed",
-    "HatchSpacing",
+    "Pulse Picker",
+    "Focal Position",
+    "Scan Speed",
+    "Hatch Spacing",
     "Repeats",
-    "Compressor Setting",
+    "Pulse Duration(CHANGE FROM COMPRESSOR)",
+]
+
+param_y_labels = [
+    "Energy (J)",
+    "Pulse Picker",
+    "Focal Position (mm)",
+    "Scan Speed (mm/s)",
+    "Hatch Spacing (m)",
+    "Repeats",
+    "Pulse Duration (fs) (CHANGE FROM COMPRESSOR)",
 ]
 
 objective = -np.array(tested_quality_factors)
@@ -144,25 +154,25 @@ axes = axes.flatten()
 # Objective function
 axes[0].plot(objective, "k.-")
 axes[0].set_title("Objective Function")
-axes[0].set_xlabel("Observation No.")
-axes[0].set_ylabel("Objective")
+axes[0].set_xlabel("Observation No.", fontweight="bold")
+axes[0].set_ylabel("Objective", fontweight="bold")
 axes[0].axvline(vline_index, linestyle="--", color="k")
 
 # Cumulative optimum
 axes[1].plot(cumulative_min, "r.-")
 axes[1].set_title("Cumulative Optimum")
-axes[1].set_xlabel("Observation No.")
-axes[1].set_ylabel("Best Objective So Far")
+axes[1].set_xlabel("Observation No.", fontweight="bold")
+axes[1].set_ylabel("Best Objective", fontweight="bold")
 axes[1].axvline(vline_index, linestyle="--", color="k")
 
 # Parameter evolution
-colors = ["olive", "orange", "teal", "purple", "brown", "blue", "crimson"]
 for i in range(num_params):
     axes[i + 2].plot(
         np.array(initial_parameters)[:, i], ".--", color=colors[i % len(colors)]
     )
     axes[i + 2].set_title(param_names[i])
-    axes[i + 2].set_xlabel("Observation No.")
+    axes[i + 2].set_xlabel("Observation No.", fontweight="bold")
+    axes[i + 2].set_ylabel(param_y_labels[i], fontweight="bold")
     axes[i + 2].axvline(vline_index, linestyle="--", color="k")
 
 plt.tight_layout()
