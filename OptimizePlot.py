@@ -1,3 +1,4 @@
+# %%
 from skopt import Optimizer
 from skopt.space import Real, Integer
 import numpy as np
@@ -69,6 +70,8 @@ for params, quality in zip(initial_parameters, initial_quality_factors):
 tested_parameters = np.array(optimizer.Xi)
 tested_quality_factors = np.array(optimizer.yi)
 
+# %%
+
 # Plot quality factor vs iteration
 plt.figure(figsize=(8, 6))
 plt.plot(
@@ -93,6 +96,7 @@ plt.show()
 plot_convergence(optimizer.get_result())
 plt.show()
 
+# %%
 # Plot convergence with better labels
 mins = np.array(
     [
@@ -101,8 +105,67 @@ mins = np.array(
     ]
 )
 
-plt.plot(range(1, len(tested_quality_factors) + 1), -mins, marker="o")
-plt.xlabel("Trial")
-plt.ylabel("Best Quality Score (0-1)")
-plt.title("Optimization Convergence")
+plt.plot(range(1, len(tested_quality_factors) + 1), -mins, marker="o", color="purple")
+plt.xlabel("Trial", fontsize=16, fontweight="bold")
+plt.ylabel("Best Quality Score (0-1)", fontsize=16, fontweight="bold")
+plt.title(
+    "Optimization Convergence",
+    fontsize=20,
+)
+plt.xticks(
+    fontsize=16,
+)
+plt.yticks(fontsize=16)
+plt.tight_layout()
+plt.grid(True)
 plt.show()
+
+# %%
+# Lets create a grid of graphs
+param_names = [
+    "Pulse Energy",
+    "PulsePicker",
+    "FocalPosition",
+    "scan_speed",
+    "HatchSpacing",
+    "Repeats",
+    "Compressor Setting",
+]
+
+objective = -np.array(tested_quality_factors)
+cumulative_min = np.maximum.accumulate(objective)
+num_params = len(param_names)
+vline_index = np.argmax(objective)  # Index of the best objective value
+
+# Plotting
+fig, axes = plt.subplots(3, 3, figsize=(15, 10))
+axes = axes.flatten()
+
+# Objective function
+axes[0].plot(objective, "k.-")
+axes[0].set_title("Objective Function")
+axes[0].set_xlabel("Observation No.")
+axes[0].set_ylabel("Objective")
+axes[0].axvline(vline_index, linestyle="--", color="k")
+
+# Cumulative optimum
+axes[1].plot(cumulative_min, "r.-")
+axes[1].set_title("Cumulative Optimum")
+axes[1].set_xlabel("Observation No.")
+axes[1].set_ylabel("Best Objective So Far")
+axes[1].axvline(vline_index, linestyle="--", color="k")
+
+# Parameter evolution
+colors = ["olive", "orange", "teal", "purple", "brown", "blue", "crimson"]
+for i in range(num_params):
+    axes[i + 2].plot(
+        np.array(initial_parameters)[:, i], ".--", color=colors[i % len(colors)]
+    )
+    axes[i + 2].set_title(param_names[i])
+    axes[i + 2].set_xlabel("Observation No.")
+    axes[i + 2].axvline(vline_index, linestyle="--", color="k")
+
+plt.tight_layout()
+plt.show()
+
+# %%
