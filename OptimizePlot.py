@@ -11,10 +11,7 @@ from skopt.plots import (
     plot_convergence,
     plot_gaussian_process,
 )
-import beamConstruct
-import openpyxl
-import os
-import time
+from scipy.interpolate import interp1d
 
 
 parameterFilepath = r"ImagesToTest/backupParameterMeasurement2025-04-29.xlsx"
@@ -120,6 +117,34 @@ plt.tight_layout()
 plt.grid(True)
 plt.show()
 
+
+# %% Convert the compressor settings to pulse durations
+# Load the CSV, from 2025-05-15 autocorrelator data
+data = np.loadtxt("compressor vs pulse duration pharos.txt", delimiter=",", skiprows=1)
+compressor_settings = data[:, 0]
+pulse_durations = data[:, 1]
+
+# Create interpolation function: maps pulse_duration → compressor_setting
+# This inverts the axis for interpolation
+pulse_duration_from_compressor = interp1d(
+    compressor_settings, pulse_durations, fill_value="extrapolate"
+)  # Returns fs
+
+
+# %%
+# Convert list of lists to NumPy array
+initial_parameters = np.array(initial_parameters)
+
+# Extract compressor settings (last column)
+compressor_vals = initial_parameters[:, -1]
+print(initial_parameters[:, -1])
+# Interpolate to get pulse durations
+pulse_durations = pulse_duration_from_compressor(compressor_vals)
+
+# Replace last column with pulse durations
+initial_parameters[:, -1] = pulse_durations
+print(initial_parameters[:, -1])
+
 # %%
 # Lets create a grid of graphs
 param_names = [
@@ -164,7 +189,7 @@ axes[1].set_title("Cumulative Optimum")
 axes[1].set_xlabel("Observation No.", fontweight="bold")
 axes[1].set_ylabel("Best Objective", fontweight="bold")
 axes[1].axvline(vline_index, linestyle="--", color="k")
-
+colors = plt.cm.tab10.colors
 # Parameter evolution
 for i in range(num_params):
     axes[i + 2].plot(
