@@ -118,20 +118,26 @@ plt.grid(True)
 plt.show()
 
 
-# %% Convert the compressor settings to pulse durations
+# %% function to onvert the compressor settings to pulse durations
 # Load the CSV, from 2025-05-15 autocorrelator data
 data = np.loadtxt("compressor vs pulse duration pharos.txt", delimiter=",", skiprows=1)
 compressor_settings = data[:, 0]
-pulse_durations = data[:, 1]
+autocorrelator_pulse_durations = data[:, 1]
+pulse_durations_negatives = autocorrelator_pulse_durations
+pulse_durations_negatives[
+    compressor_settings < compressor_settings[np.argmin(autocorrelator_pulse_durations)]
+] *= (
+    -1
+)  # Set pulse durations to - for compressor settings below the minimum pulse duration, representing negative chirp
 
 # Create interpolation function: maps pulse_duration → compressor_setting
 # This inverts the axis for interpolation
 pulse_duration_from_compressor = interp1d(
-    compressor_settings, pulse_durations, fill_value="extrapolate"
+    compressor_settings, pulse_durations_negatives, fill_value="extrapolate"
 )  # Returns fs
 
 
-# %%
+# %% Convert our compressor settings to pulse durations, convert pulse picker to rep rate, convert focal position to our zero point, and convert energy in J to uJ
 # Convert list of lists to NumPy array
 initial_parameters = np.array(initial_parameters)
 
@@ -145,26 +151,34 @@ pulse_durations = pulse_duration_from_compressor(compressor_vals)
 initial_parameters[:, -1] = pulse_durations
 print(initial_parameters[:, -1])
 
+initial_parameters[:, 0] *= 1e6  # Convert energy from J to uJ
+initial_parameters[:, 2] -= 17  # Convert focal position to our zero point (17 mm).
+initial_parameters[:, 1] = (
+    20000 / initial_parameters[:, 1]
+)  # Convert pulse picker to rep rate (kHz)
+# convert hatch spacing to µm
+initial_parameters[:, 4] *= 1e3  # Convert hatch spacing from mm to µm
+
 # %%
 # Lets create a grid of graphs
 param_names = [
     "Pulse Energy",
-    "Pulse Picker",
+    "Repetition Rate",
     "Focal Position",
     "Scan Speed",
     "Hatch Spacing",
     "Repeats",
-    "Pulse Duration(CHANGE FROM COMPRESSOR)",
+    "Pulse Duration",
 ]
 
 param_y_labels = [
-    "Energy (J)",
-    "Pulse Picker",
+    "Energy (µJ)",
+    "Repetition Rate (Hz)",
     "Focal Position (mm)",
     "Scan Speed (mm/s)",
-    "Hatch Spacing (m)",
+    "Hatch Spacing (µm)",
     "Repeats",
-    "Pulse Duration (fs) (CHANGE FROM COMPRESSOR)",
+    "Pulse Duration (fs)",
 ]
 
 objective = -np.array(tested_quality_factors)
@@ -173,34 +187,81 @@ num_params = len(param_names)
 vline_index = np.argmax(objective)  # Index of the best objective value
 
 # Plotting
-fig, axes = plt.subplots(3, 3, figsize=(15, 10))
+fig, axes = plt.subplots(3, 3, figsize=(15, 10), sharex=True)
 axes = axes.flatten()
 
 # Objective function
-axes[0].plot(objective, "k.-")
-axes[0].set_title("Objective Function")
-axes[0].set_xlabel("Observation No.", fontweight="bold")
-axes[0].set_ylabel("Objective", fontweight="bold")
+axes[0].plot(objective, "k.-", linewidth=2, markersize=11)
+axes[0].set_title("Objective Function", fontsize=20)
+# axes[0].set_xlabel("Observation No.", fontweight="bold")
+axes[0].set_ylabel("Objective", fontweight="bold", fontsize=14)
 axes[0].axvline(vline_index, linestyle="--", color="k")
 
 # Cumulative optimum
-axes[1].plot(cumulative_min, "r.-")
-axes[1].set_title("Cumulative Optimum")
-axes[1].set_xlabel("Observation No.", fontweight="bold")
-axes[1].set_ylabel("Best Objective", fontweight="bold")
+axes[1].plot(cumulative_min, "r.-", linewidth=2, markersize=11)
+axes[1].set_title("Cumulative Optimum", fontsize=20)
+# axes[1].set_xlabel("Observation No.", fontweight="bold")
+axes[1].set_ylabel("Best Objective", fontweight="bold", fontsize=14)
 axes[1].axvline(vline_index, linestyle="--", color="k")
 colors = plt.cm.tab10.colors
 # Parameter evolution
 for i in range(num_params):
     axes[i + 2].plot(
-        np.array(initial_parameters)[:, i], ".--", color=colors[i % len(colors)]
+        np.array(initial_parameters)[:, i],
+        ".-",
+        color=colors[i % len(colors)],
+        linewidth=2,
+        markersize=11,
     )
-    axes[i + 2].set_title(param_names[i])
-    axes[i + 2].set_xlabel("Observation No.", fontweight="bold")
-    axes[i + 2].set_ylabel(param_y_labels[i], fontweight="bold")
+    axes[i + 2].set_title(param_names[i], fontsize=20)
+    # axes[i + 2].set_xlabel("Observation No.", fontweight="bold")
+    axes[i + 2].set_ylabel(param_y_labels[i], fontweight="bold", fontsize=14)
     axes[i + 2].axvline(vline_index, linestyle="--", color="k")
+
+for i in [6, 7, 8]:
+    axes[i].set_xlabel("Observation No.", fontweight="bold", fontsize=16)
+
 
 plt.tight_layout()
 plt.show()
 
+# %%
+# Plot parameter vs objective function
+fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+axes = axes.flatten()
+colors = plt.cm.tab10.colors
+for i in range(num_params):
+    axis = i  # Default axis index
+    # do not plot repetition rate
+    if i == 1:
+        continue
+    if i > 1:
+        axis = i - 1  # Adjust index for the axes array
+    axes[axis].plot(
+        np.array(initial_parameters)[:, i],
+        objective,
+        ".",
+        color=colors[i + 2 % len(colors)],
+        markersize=13,
+    )
+    axes[axis].set_title(param_names[i], fontsize=20)
+    axes[axis].set_xlabel(param_y_labels[i], fontweight="bold", fontsize=16)
+    # set y label to "Objective Function" only for the left 2 graphs
+    if axis % 3 == 0:
+        axes[axis].set_ylabel("Objective Function", fontweight="bold", fontsize=16)
+
+plt.tight_layout()
+plt.show()
+# %%
+# Get pulse duration of best cut
+print(initial_parameters[:, -1][np.argmax(objective)])
+# %%
+print(
+    "pulse duration of 149214 for trial 55.1:", pulse_duration_from_compressor(149214)
+)
+print("pulse duration of 30986 for trial 50:", pulse_duration_from_compressor(30986))
+
+# %%
+# plot matrix of objectives
+plot_objective(optimizer.get_result())
 # %%
