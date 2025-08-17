@@ -7,6 +7,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import os
 from scipy import ndimage
+import matplotlib as mpl
 
 # Run this in at a directory with images of bessel beam along propogation direction. (right now in mm) e.g. 4.60.tif, 4.55.tif,4.50.tif etc.
 
@@ -79,6 +80,9 @@ yVals = np.linspace(0, lineoutLength, num=lineoutLength + 1) * micronPerPixel
 
 [X, Y] = np.meshgrid(imageNames, yVals)
 
+# set plot font to arial
+mpl.rcParams["font.family"] = "Arial"
+
 fig, ax = plt.subplots(1, 1)
 
 
@@ -109,5 +113,30 @@ ax.tick_params(axis="both", which="major", labelsize=12)
 ax.set_xlim(0, 4)
 
 plt.show()
+
+# %%# Create a plot of a zeroth-order Bessel beam focus
+# Create a grid of coordinates
+from scipy.special import j0
+
+x = np.linspace(-5, 5, 1000)
+y = np.linspace(-5, 5, 1000)
+X, Y = np.meshgrid(x, y)
+R = np.sqrt(X**2 + Y**2)
+
+# Simulate a zeroth-order Bessel beam intensity profile
+intensity = j0(R) ** 2
+
+# Normalize intensity for better visualization
+intensity /= intensity.max()
+
+# Create the plot with transparent background
+fig, ax = plt.subplots(figsize=(6, 6), dpi=300)
+ax.axis("off")  # Hide axes
+ax.set_aspect("equal")
+plt.imshow(intensity, cmap="hot", extent=(-10, 10, -10, 10), alpha=1)
+
+# Save the image with transparent background
+# plt.savefig("bessel_beam_focus.png", transparent=True, bbox_inches='tight', pad_inches=0)
+
 
 # %%
