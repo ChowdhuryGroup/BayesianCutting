@@ -12,6 +12,7 @@ from skopt.plots import (
     plot_gaussian_process,
 )
 from scipy.interpolate import interp1d
+import matplotlib as mpl
 
 
 parameterFilepath = r"ImagesToTest/backupParameterMeasurement2025-04-29.xlsx"
@@ -161,6 +162,9 @@ initial_parameters[:, 4] *= 1e3  # Convert hatch spacing from mm to µm
 
 # %%
 # Lets create a grid of graphs
+# set plot font to arial
+mpl.rcParams["font.family"] = "Arial"
+
 param_names = [
     "Pulse Energy",
     "Repetition Rate",
@@ -219,7 +223,7 @@ for i in range(num_params):
     axes[i + 2].axvline(vline_index, linestyle="--", color="k")
 
 for i in [6, 7, 8]:
-    axes[i].set_xlabel("Observation No.", fontweight="bold", fontsize=16)
+    axes[i].set_xlabel("Trial", fontweight="bold", fontsize=16)
 
 
 plt.tight_layout()
@@ -264,4 +268,13 @@ print("pulse duration of 30986 for trial 50:", pulse_duration_from_compressor(30
 # %%
 # plot matrix of objectives
 plot_objective(optimizer.get_result())
+# %%
+# print pulse duration of compressor 1000 and 200000
+print(
+    "Pulse duration for compressor setting 1000:", pulse_duration_from_compressor(1000)
+)
+print(
+    "Pulse duration for compressor setting 200000:",
+    pulse_duration_from_compressor(200000),
+)
 # %%
