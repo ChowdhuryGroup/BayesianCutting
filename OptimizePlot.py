@@ -13,7 +13,9 @@ from skopt.plots import (
 )
 from scipy.interpolate import interp1d
 import matplotlib as mpl
-
+#from IPython.display import set_matplotlib_formats
+%matplotlib inline
+%config InlineBackend.figure_formats = ['svg']
 
 parameterFilepath = r"ImagesToTest/backupParameterMeasurement2025-04-29.xlsx"
 
@@ -224,7 +226,19 @@ for i in range(num_params):
 
 for i in [6, 7, 8]:
     axes[i].set_xlabel("Trial", fontweight="bold", fontsize=16)
-
+#Add a,b,c... to the top left of each subplot
+labels = ["a", "b", "c", "d", "e", "f", "g", "h", "i"]
+for ax, label in zip(axes, labels):
+    ax.text(
+        0.02,
+        0.93,
+        label,
+        transform=ax.transAxes,
+        fontsize=20,
+        fontweight="bold",
+        va="top",
+        ha="left",
+    )
 
 plt.tight_layout()
 plt.show()
@@ -248,12 +262,24 @@ for i in range(num_params):
         color=colors[i + 2 % len(colors)],
         markersize=13,
     )
-    axes[axis].set_title(param_names[i], fontsize=20)
+    #axes[axis].set_title(param_names[i], fontsize=20)
     axes[axis].set_xlabel(param_y_labels[i], fontweight="bold", fontsize=16)
     # set y label to "Objective Function" only for the left 2 graphs
     if axis % 3 == 0:
         axes[axis].set_ylabel("Objective Function", fontweight="bold", fontsize=16)
-
+#Add a,b,c... to the top left of each subplot
+labels = ["a", "b", "c", "d", "e", "f"]
+for ax, label in zip(axes, labels):
+    ax.text(
+        0.02,
+        0.93,
+        label,
+        transform=ax.transAxes,
+        fontsize=20,
+        fontweight="bold",
+        va="top",
+        ha="left",
+    )
 plt.tight_layout()
 plt.show()
 # %%
