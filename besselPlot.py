@@ -9,6 +9,9 @@ import os
 from scipy import ndimage
 import matplotlib as mpl
 
+# %matplotlib inline
+# %config InlineBackend.figure_formats = ['svg']
+
 # Run this in at a directory with images of bessel beam along propogation direction. (right now in mm) e.g. 4.60.tif, 4.55.tif,4.50.tif etc.
 
 imageDirectory = r"/Users/conradkuz/Library/CloudStorage/OneDrive-SharedLibraries-TheOhioStateUniversity/Chowdhury Lab (ALL) - Glass cutting - Glass cutting/BayesianGlassCutting/2025-04-29/bessel characterization"
@@ -111,7 +114,8 @@ ax.set_ylabel("Width (µm)", fontsize=14)
 ax.tick_params(axis="both", which="major", labelsize=12)
 
 ax.set_xlim(0, 4)
-
+# set high dpi
+fig.set_dpi(300)
 plt.show()
 
 # %%# Create a plot of a zeroth-order Bessel beam focus
