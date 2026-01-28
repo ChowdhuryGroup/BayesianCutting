@@ -96,7 +96,7 @@ graph = ax.pcolormesh(
     Y,
     ndimage.gaussian_filter(np.transpose(lineouts), sigma=0.8, order=0),
     shading="gouraud",
-    cmap="jet",
+    cmap="turbo",
 )
 graph.set_clim(0, 1)
 # cbar = fig.colorbar(graph, shrink=0.75, label="Relative Intensity")

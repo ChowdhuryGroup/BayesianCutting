@@ -145,13 +145,23 @@ pulse_duration_from_compressor = interp1d(
 initial_parameters = np.array(initial_parameters)
 
 # Extract compressor settings (last column)
-compressor_vals = initial_parameters[:, -1]
-print(initial_parameters[:, -1])
+compressor_vals_mm = initial_parameters[:, -1]
+print("Compressor Vals",initial_parameters[:, -1])
 # Interpolate to get pulse durations
-pulse_durations = pulse_duration_from_compressor(compressor_vals)
+pulse_durations = pulse_duration_from_compressor(compressor_vals_mm)
+
+
+tau_min = np.min(np.abs(pulse_durations))  # Transform-limited duration in fs
+print("Minimum Pulse Duration (fs):", tau_min)
+# Calculate magnitude of GDD in fs^2
+# Note: This assumes pulse_durations >= tau_min. 
+# If your data has noise making tau < 300, clip it or handle NaNs.
+gdd_values = np.sign(pulse_durations)*(tau_min**2 / (4 * np.log(2))) * np.sqrt((np.abs(pulse_durations) / tau_min)**2 - 1)
 
 # Replace last column with pulse durations
-initial_parameters[:, -1] = pulse_durations
+#initial_parameters[:, -1] = pulse_durations
+#add pulse durations as new last column
+initial_parameters = np.column_stack((initial_parameters[:,:-1], pulse_durations,compressor_vals_mm,gdd_values))
 print(initial_parameters[:, -1])
 
 initial_parameters[:, 0] *= 1e6  # Convert energy from J to uJ
@@ -166,6 +176,25 @@ initial_parameters[:, 4] *= 1e3  # Convert hatch spacing from mm to µm
 # Lets create a grid of graphs
 # set plot font to arial
 mpl.rcParams["font.family"] = "Arial"
+# --- Publication Quality Settings ---
+mpl.rcParams["font.family"] = "Arial"
+mpl.rcParams["font.weight"] = "bold"        # Bold text everywhere
+mpl.rcParams["axes.labelweight"] = "bold"   # Bold axis labels
+mpl.rcParams["axes.titleweight"] = "bold"   # Bold titles
+
+# Font Sizes
+mpl.rcParams["font.size"] = 14              # Base font size
+mpl.rcParams["axes.titlesize"] = 20         # Title font size
+mpl.rcParams["axes.labelsize"] = 16         # Axis label font size
+mpl.rcParams["xtick.labelsize"] = 14        # X-tick label size
+mpl.rcParams["ytick.labelsize"] = 14        # Y-tick label size
+
+# Thicker Lines and Ticks for better visibility
+mpl.rcParams["axes.linewidth"] = 2          # Thicker subplot borders (spines)
+mpl.rcParams["xtick.major.width"] = 2       # Thicker x-ticks
+mpl.rcParams["xtick.major.size"] = 6        # Longer x-ticks
+mpl.rcParams["ytick.major.width"] = 2       # Thicker y-ticks
+mpl.rcParams["ytick.major.size"] = 6        # Longer y-ticks
 
 param_names = [
     "Pulse Energy",
@@ -174,7 +203,7 @@ param_names = [
     "Scan Speed",
     "Hatch Spacing",
     "Repeats",
-    "Pulse Duration",
+    "Pulse Chrip",
 ]
 
 param_y_labels = [
@@ -223,6 +252,31 @@ for i in range(num_params):
     # axes[i + 2].set_xlabel("Observation No.", fontweight="bold")
     axes[i + 2].set_ylabel(param_y_labels[i], fontweight="bold", fontsize=14)
     axes[i + 2].axvline(vline_index, linestyle="--", color="k")
+    if i == num_params - 1:
+            # Create a twin axis that shares the x-axis
+            ax2 = axes[i + 2].twinx()
+            
+            # 1. Sync the Y-limits so the 'canvas' matches Pulse Duration exactly
+            ax2.set_ylim(axes[i + 2].get_ylim())
+            
+            # 2. Get GDD values (from the last column we added: index 8)
+            # We use these only to determine the min/max for the tick range
+            current_gdd_vals = initial_parameters[:, -1]
+            
+            # 3. Create 5 evenly spaced GDD ticks for the label
+            gdd_ticks = np.linspace(current_gdd_vals.min(), current_gdd_vals.max(), 5)
+
+            # 4. Calculate where these GDD ticks fall on the Pulse Duration (Y) scale
+            # Formula: tau = tau_min * sqrt(1 + (beta * gdd)^2) where beta = 4ln2/tau_min^2
+            # Note: We use absolute value of GDD because +GDD and -GDD result in the same duration
+            tick_locs = np.sign(gdd_ticks)*tau_min * np.sqrt(1 + (np.abs(gdd_ticks) * (4 * np.log(2)) / tau_min**2)**2)
+
+            # 5. Manually set the ticks and labels on the right axis
+            ax2.set_yticks(tick_locs)
+            # Format the labels (e.g., 0, 5000, 10000)
+            #ax2.set_yticklabels([f"{v:.0f}" for v in gdd_ticks])
+            ax2.set_yticklabels([f"{v:.1e}".replace("e+0","e") for v in gdd_ticks])
+            ax2.set_ylabel("GDD ($fs^2$)", fontweight="bold", fontsize=14)
 
 for i in [6, 7, 8]:
     axes[i].set_xlabel("Trial", fontweight="bold", fontsize=16)
@@ -267,6 +321,31 @@ for i in range(num_params):
     # set y label to "Objective Function" only for the left 2 graphs
     if axis % 3 == 0:
         axes[axis].set_ylabel("Objective Function", fontweight="bold", fontsize=16)
+    if i == num_params - 1:
+        # Create a twin axis that shares the x-axis
+        ax2 = axes[axis].twiny()
+        
+        # 1. Sync the Y-limits so the 'canvas' matches Pulse Duration exactly
+        ax2.set_xlim(axes[axis].get_ylim())
+        
+        # 2. Get GDD values (from the last column we added: index 8)
+        # We use these only to determine the min/max for the tick range
+        current_gdd_vals = initial_parameters[:, -1]
+        
+        # 3. Create 5 evenly spaced GDD ticks for the label
+        gdd_ticks = np.linspace(current_gdd_vals.min(), current_gdd_vals.max(), 5)
+
+        # 4. Calculate where these GDD ticks fall on the Pulse Duration (Y) scale
+        # Formula: tau = tau_min * sqrt(1 + (beta * gdd)^2) where beta = 4ln2/tau_min^2
+        # Note: We use absolute value of GDD because +GDD and -GDD result in the same duration
+        tick_locs = np.sign(gdd_ticks)*tau_min * np.sqrt(1 + (np.abs(gdd_ticks) * (4 * np.log(2)) / tau_min**2)**2)
+
+        # 5. Manually set the ticks and labels on the right axis
+        ax2.set_xticks(tick_locs)
+        # Format the labels (e.g., 0, 5000, 10000)
+        #ax2.set_yticklabels([f"{v:.0f}" for v in gdd_ticks])
+        ax2.set_xticklabels([f"{v:.1e}".replace("e+0","e") for v in gdd_ticks])
+        ax2.set_xlabel("GDD ($fs^2$)", fontweight="bold", fontsize=14)
 #Add a,b,c... to the top left of each subplot
 labels = ["a", "b", "c", "d", "e", "f"]
 for ax, label in zip(axes, labels):
