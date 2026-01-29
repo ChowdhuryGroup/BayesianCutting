@@ -10,10 +10,10 @@ from scipy import ndimage
 import matplotlib as mpl
 
 # %matplotlib inline
-# %config InlineBackend.figure_formats = ['svg']
+
 
 # Run this in at a directory with images of bessel beam along propogation direction. (right now in mm) e.g. 4.60.tif, 4.55.tif,4.50.tif etc.
-
+# %config InlineBackend.figure_formats = ['svg']
 imageDirectory = r"/Users/conradkuz/Library/CloudStorage/OneDrive-SharedLibraries-TheOhioStateUniversity/Chowdhury Lab (ALL) - Glass cutting - Glass cutting/BayesianGlassCutting/2025-04-29/bessel characterization"
 imageDirectory = r"/Users/conradkuz/Library/CloudStorage/OneDrive-SharedLibraries-TheOhioStateUniversity/Chowdhury Lab (ALL) - Glass cutting - Glass cutting/BayesianGlassCutting/2025-02-25/bessel characterization"
 lineoutLength = 300
@@ -73,8 +73,76 @@ for x in sorted(os.listdir(imageDirectory)):
         imageNames.append((float(os.path.splitext(x)[0]) - FIRST_IMAGE_POSITION))
 
 print(imageNames)
-
 # %% Make Plots
+
+# 1. Normalize lineouts
+lineouts = lineouts / (np.max(lineouts))
+
+# 2. Transpose and Smooth FIRST so we know the final shape
+# We do this before creating the grid to ensure dimensions match exactly.
+# If lineouts is (56, 301), C will be (301, 56).
+C = ndimage.gaussian_filter(np.transpose(lineouts), sigma=0.8, order=0)
+
+# 3. Get shapes directly from the data (C)
+# C.shape[0] is the Y-axis (Width/Height)
+# C.shape[1] is the X-axis (Propagation steps)
+num_y_points = C.shape[0]
+num_x_points = C.shape[1]
+
+# 4. Generate Grids to match C exactly
+# Y-axis (Width)
+yVals = np.linspace(0, num_y_points * micronPerPixel, num=num_y_points)
+
+# X-axis (Propagation)
+# Assuming 'imageNames' holds your Z-positions.
+# We ensure it matches the data dimension.
+if len(imageNames) != num_x_points:
+    # Fallback if imageNames doesn't match: create a linspace based on the size
+    print(
+        f"Warning: imageNames length ({len(imageNames)}) mismatch with data ({num_x_points}). generating new X-axis."
+    )
+    xVals = np.linspace(0, 4, num=num_x_points)  # Assuming 0 to 4mm scan
+else:
+    xVals = imageNames
+
+[X, Y] = np.meshgrid(xVals, yVals)
+
+# 5. Global Plot Settings
+mpl.rcParams["font.family"] = "Arial"
+mpl.rcParams["font.size"] = 16
+mpl.rcParams["axes.linewidth"] = 1.5
+mpl.rcParams["xtick.major.width"] = 1.5
+mpl.rcParams["ytick.major.width"] = 1.5
+mpl.rcParams["xtick.direction"] = "out"
+mpl.rcParams["ytick.direction"] = "out"
+
+fig, ax = plt.subplots(1, 1, figsize=(7, 5), dpi=300)
+
+# 6. Plot
+graph = ax.pcolormesh(
+    X, Y, C, shading="gouraud", cmap="turbo", vmin=0, vmax=1, rasterized=True
+)
+
+# 7. Labels
+ax.set_xlabel("Propagation Distance (mm)", fontsize=16, fontweight="bold")
+ax.set_ylabel("Width (µm)", fontsize=16, fontweight="bold")
+
+# 8. Ticks
+ax.tick_params(axis="both", which="major", labelsize=14)
+ax.set_xlim(0, 4)
+
+# 9. Colorbar
+cbar = fig.colorbar(graph, ax=ax, shrink=0.8, pad=0.03)
+cbar.set_ticks([0, 0.25, 0.5, 0.75, 1])
+cbar.ax.tick_params(labelsize=14)
+cbar.set_label("Relative Intensity", fontsize=16, rotation=270, labelpad=20)
+# output to notebook as svg
+
+plt.tight_layout()
+plt.savefig("Bessel_Beam_Plot.svg", format="svg", bbox_inches="tight")
+plt.show()
+# %% Make Plots
+
 # normalize lineouts
 lineouts = lineouts / (np.max(lineouts))
 
@@ -117,6 +185,7 @@ ax.set_xlim(0, 4)
 # set high dpi
 fig.set_dpi(300)
 plt.show()
+
 
 # %%# Create a plot of a zeroth-order Bessel beam focus
 # Create a grid of coordinates
