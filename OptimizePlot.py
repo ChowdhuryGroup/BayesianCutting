@@ -511,6 +511,9 @@ for i in range(initial_parameters.shape[1]-2):
         print("Compressor Setting max", max_val, np.max(initial_parameters[:, i+1]))
         normalized_parameters[:, i] = (initial_parameters[:, i+1] - min_val) / (max_val - min_val)
 distances = np.linalg.norm(normalized_parameters - normalized_parameters[best_index], axis=1)
+#print names and distances
+for i in range(len(param_names)):
+    print(param_names[i], distances[i])
 plt.figure(figsize=(8,6))
 plt.plot(distances, objective, "bo", markersize=10)
 plt.xlabel("Euclidean Distance from Best Point (Normalized)", fontweight="bold", fontsize=16)
