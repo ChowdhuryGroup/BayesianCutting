@@ -960,3 +960,170 @@ print("\nParameter Sensitivity Ranking (Slice Amplitude):")
 order = np.argsort(sens_norm)[::-1]
 for rank, i in enumerate(order):
     print(f"  {rank+1}. {param_names[i]:25s}  Importance = {sens_norm[i]:.3f}")
+
+#%%
+# %% Parameter Correlation Matrix
+# Uses the existing 'df' DataFrame and 'sns' (seaborn) from earlier cells.
+
+# Define the relevant physical parameters and the quality score
+corr_cols = [
+    'Pulse Energy',
+    'FocalPosition',
+    'scan_speed',
+    'HatchSpacing',
+    'Repeats',
+    'Pulse Duration (fs)',
+    'Quality'
+]
+
+# Calculate the Pearson correlation matrix
+corr_matrix = df[corr_cols].corr()
+
+# Setup the matplotlib figure
+fig, ax = plt.subplots(figsize=(10, 8))
+
+# Generate a custom diverging colormap (blue to red)
+cmap = sns.diverging_palette(230, 20, as_cmap=True)
+
+# Draw the heatmap
+sns.heatmap(
+    corr_matrix, 
+    cmap=cmap, 
+    vmax=1.0, 
+    vmin=-1.0, 
+    center=0,
+    square=True, 
+    linewidths=.5, 
+    cbar_kws={"shrink": .8}, 
+    annot=True,          # Show the correlation numbers
+    fmt=".2f",           # 2 decimal places
+    annot_kws={"size": 12, "weight": "bold"}
+)
+
+ax.set_title("Parameter Correlation Matrix", fontsize=20, fontweight="bold", pad=20)
+    
+# Adjust tick labels to match publication settings
+ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right', fontsize=14, fontweight="bold")
+ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize=14, fontweight="bold")
+
+plt.tight_layout()
+# %% Random Forest Permutation Importance
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.inspection import permutation_importance
+
+# 1. Train a Random Forest on the 0-1 normalized parameters
+# Random Forests natively capture non-linearities and parameter coupling
+rf = RandomForestRegressor(n_estimators=100, random_state=42)
+rf.fit(normalized_parameters, objective)
+
+# 2. Calculate Permutation Importance
+# This scrambles one parameter column at a time and measures the drop in R^2 accuracy.
+# A larger drop indicates the model heavily relied on that parameter.
+result = permutation_importance(rf, normalized_parameters, objective, n_repeats=20, random_state=42)
+importance_means = result.importances_mean
+
+# Normalize so the importances sum to 1 (or 100%) for clear comparison
+importance_normalized = importance_means / importance_means.sum()
+
+# 3. Plot the Feature Importance
+fig, ax = plt.subplots(figsize=(10, 6))
+bars = ax.bar(
+    param_names, 
+    importance_normalized,
+    color=plt.cm.tab10.colors[:len(param_names)], 
+    edgecolor="black", 
+    linewidth=1.2
+)
+
+# Annotate bars
+for bar, val in zip(bars, importance_normalized):
+    ax.text(
+        bar.get_x() + bar.get_width() / 2,
+        bar.get_height() + 0.005,
+        f"{val:.3f}", 
+        ha="center", 
+        va="bottom", 
+        fontsize=12,
+        fontweight="bold"
+    )
+
+ax.set_ylabel("Relative Importance", fontweight="bold", fontsize=16)
+ax.set_title("Parameter Sensitivity via Permutation Importance", fontweight="bold", fontsize=18)
+ax.set_xticks(range(len(param_names)))
+ax.set_xticklabels(param_names, rotation=30, ha="right", fontsize=14, fontweight="bold")
+
+# Clean up axes
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+
+plt.tight_layout()
+plt.show()
+
+# Print a ranked summary to the console
+print("\nParameter Sensitivity Ranking (Permutation Importance):")
+order = np.argsort(importance_normalized)[::-1]  # Descending order
+for rank, i in enumerate(order):
+    print(f"  {rank+1}. {param_names[i]:25s}  Importance = {importance_normalized[i]:.3f}")
+
+#%%
+# %% 
+#rename PulsePicker to Repetition Rate
+df.rename(columns={"PulsePicker": "Repetition Rate"}, inplace=True)
+# %% Response Letter Exhibit: Statistical Artifacts
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.inspection import permutation_importance
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+
+# 1. Setup Figure
+fig, axes = plt.subplots(1, 2, figsize=(18, 7))
+
+# --- Panel A: Pearson Correlation Matrix ---
+print(df.tail())
+corr_cols = ['Pulse Energy', 'Repetition Rate', 'FocalPosition', 'scan_speed', 'HatchSpacing', 'Repeats', 'Pulse Duration (fs)', 'Quality']
+#create new data fram dropping rows where quality is zero
+df2 = df[df['Quality'] > 0]
+corr_matrix = df2[corr_cols].corr()
+cmap = sns.diverging_palette(230, 20, as_cmap=True)
+
+sns.heatmap(
+    corr_matrix, cmap=cmap, vmax=1.0, vmin=-1.0, center=0,
+    square=True, linewidths=.5, cbar_kws={"shrink": .8}, 
+    annot=True, fmt=".2f", annot_kws={"size": 12, "weight": "bold"},
+    ax=axes[0]
+)
+axes[0].set_title("(a) Pearson Correlation Matrix\n(Fails on non-linear, zero-inflated data)", fontsize=16, fontweight="bold", pad=15)
+axes[0].set_xticklabels(axes[0].get_xticklabels(), rotation=45, ha='right', fontsize=12, fontweight="bold")
+axes[0].set_yticklabels(axes[0].get_yticklabels(), rotation=0, fontsize=12, fontweight="bold")
+
+# --- Panel B: Random Forest Permutation Importance ---
+rf = RandomForestRegressor(n_estimators=100, random_state=42)
+rf.fit(normalized_parameters, objective)
+result = permutation_importance(rf, normalized_parameters, objective, n_repeats=20, random_state=42)
+importance_normalized = result.importances_mean / result.importances_mean.sum()
+
+bars = axes[1].bar(
+    param_names, importance_normalized,
+    color=plt.cm.tab10.colors[:len(param_names)], edgecolor="black", linewidth=1.2
+)
+
+for bar, val in zip(bars, importance_normalized):
+    axes[1].text(
+        bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.005,
+        f"{val:.3f}", ha="center", va="bottom", fontsize=12, fontweight="bold"
+    )
+
+axes[1].set_ylabel("Relative Importance", fontweight="bold", fontsize=14)
+axes[1].set_title("(b) RF Permutation Importance\n(Artificially biases discrete 'Hatch Spacing')", fontsize=16, fontweight="bold", pad=15)
+axes[1].set_xticks(range(len(param_names)))
+axes[1].set_xticklabels(param_names, rotation=30, ha="right", fontsize=12, fontweight="bold")
+axes[1].spines['top'].set_visible(False)
+axes[1].spines['right'].set_visible(False)
+
+#label (a) and (b)
+axes[0].text(-0.12, 1.05, "(a)", transform=axes[0].transAxes, fontsize=20, fontweight='bold', va='top', ha='right')
+axes[1].text(-0.12, 1.05, "(b)", transform=axes[1].transAxes, fontsize=20, fontweight='bold', va='top', ha='right')
+
+plt.tight_layout()
+plt.show()
