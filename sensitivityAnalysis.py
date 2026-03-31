@@ -57,6 +57,128 @@ def objectiveScore(
 # test objective score on first row of parameter sheet
 for i in range(1, len(parameterSheet)):
     print("trial", parameterSheet[i][0], ":", objectiveScore(*parameterSheet[i][1:7]))
+
+# %%
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+
+# set plot font to arial
+mpl.rcParams["font.family"] = "Arial"
+# --- Publication Quality Settings ---
+mpl.rcParams["font.family"] = "Arial"
+mpl.rcParams["font.weight"] = "bold"  # Bold text everywhere
+mpl.rcParams["axes.labelweight"] = "bold"  # Bold axis labels
+mpl.rcParams["axes.titleweight"] = "bold"  # Bold titles
+
+# Font Sizes
+mpl.rcParams["font.size"] = 14  # Base font size
+mpl.rcParams["axes.titlesize"] = 20  # Title font size
+mpl.rcParams["axes.labelsize"] = 16  # Axis label font size
+mpl.rcParams["xtick.labelsize"] = 14  # X-tick label size
+mpl.rcParams["ytick.labelsize"] = 14  # Y-tick label size
+
+# Thicker Lines and Ticks for better visibility
+mpl.rcParams["axes.linewidth"] = 2  # Thicker subplot borders (spines)
+mpl.rcParams["xtick.major.width"] = 2  # Thicker x-ticks
+mpl.rcParams["xtick.major.size"] = 6  # Longer x-ticks
+mpl.rcParams["ytick.major.width"] = 2  # Thicker y-ticks
+mpl.rcParams["ytick.major.size"] = 6  # Longer y-ticks
+# sublot of 3 graphs of trial vs haz, isoperimetricratio, and radius with cracking as color
+df = pandas.read_excel(parameterFilepath, sheet_name="Measurements", skiprows=1)
+
+# drop the last 4 rows which are trial 55.1
+df = df[:-4]
+print(df.tail())
+# 4 measurements per trial, so calculate haz ratio, isoperimetric ratio, and average radius per trial
+df["haz_ratio"] = (df["HAZ Area"] - df["Clean Cut Area"]) / df["HAZ Area"]
+df["isoperimetric_ratio"] = 4 * np.pi * df["Clean Cut Area"] / df["Perimeter"] ** 2
+df["average_radius_"] = df["Average Radius"] / 2.494  # convert pixels to microns
+
+# group by trial and calculate the mean and std
+trial_summary = (
+    df.groupby("Trial")
+    .agg(
+        {
+            "haz_ratio": ["mean", "std"],
+            "isoperimetric_ratio": ["mean", "std"],
+            "average_radius_": ["mean", "std"],
+            "Cracking present (0(no) or 1(yes))": ["mean"],
+        }
+    )
+    .reset_index()
+)
+trial_summary.columns = [
+    "Trial",
+    "haz_ratio_mean",
+    "haz_ratio_std",
+    "isoperimetric_ratio_mean",
+    "isoperimetric_ratio_std",
+    "average_radius_mean",
+    "average_radius_std",
+    "cracking_mean",
+]
+
+# plot trial vs haz, isoperimetric ratio, and radius with cracking as color
+fig, axs = plt.subplots(1, 3, figsize=(18, 5))
+axs[0].errorbar(
+    trial_summary["Trial"],
+    trial_summary["haz_ratio_mean"],
+    yerr=trial_summary["haz_ratio_std"],
+    fmt="o",
+    color="blue",
+    ecolor="lightblue",
+    elinewidth=2,
+    capsize=3,
+)
+axs[0].set_title("Trial vs HAZ")
+axs[0].set_xlabel("Trial")
+axs[0].set_ylabel("HAZ:Clean Cut Area Ratio")
+axs[1].errorbar(
+    trial_summary["Trial"],
+    trial_summary["isoperimetric_ratio_mean"],
+    yerr=trial_summary["isoperimetric_ratio_std"],
+    fmt="o",
+    color="green",
+    ecolor="lightgreen",
+    elinewidth=2,
+    capsize=3,
+)
+axs[1].set_title("Trial vs Isoperimetric Ratio")
+axs[1].set_xlabel("Trial")
+axs[1].set_ylabel("Isoperimetric Ratio")
+axs[2].errorbar(
+    trial_summary["Trial"],
+    trial_summary["average_radius_mean"],
+    yerr=trial_summary["average_radius_std"],
+    fmt="o",
+    color="red",
+    ecolor="lightcoral",
+    elinewidth=2,
+    capsize=3,
+)
+axs[2].set_title("Trial vs Average Radius")
+axs[2].set_xlabel("Trial")
+axs[2].set_ylabel("Average Radius (microns)")
+axs[2].axhline(125, color="gray", ls="--", lw=1.5, label="Desired Radius (125 microns)")
+axs[2].legend()
+
+# label (a), (b), (c) for the three subplots
+axs[0].text(
+    -0.1, 1.05, "(a)", transform=axs[0].transAxes, fontsize=15, fontweight="bold"
+)
+axs[1].text(
+    -0.1, 1.05, "(b)", transform=axs[1].transAxes, fontsize=15, fontweight="bold"
+)
+axs[2].text(
+    -0.1, 1.05, "(c)", transform=axs[2].transAxes, fontsize=15, fontweight="bold"
+)
+# fig.suptitle('Trial Parameter Relationships', fontsize=14, fontweight='bold')
+
+plt.tight_layout()
+plt.savefig("trial_parameter_relationships.svg")
+plt.show()
+
+
 # %%
 custom_weights = {
     "roundness": 0,
