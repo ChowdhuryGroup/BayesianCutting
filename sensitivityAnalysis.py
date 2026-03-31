@@ -36,6 +36,8 @@ def objectiveScore(
         }
     if totalTime > 350:
         return 0
+    if any(v != v for v in [HAZArea, cleanCutArea, perimeter, averageRadius]):
+        return 0.0
     desired_radius = 311.75
     roundnessScore = weights["roundness"] * (
         1 - 4 * np.pi * (cleanCutArea / perimeter**2)
@@ -54,7 +56,26 @@ def objectiveScore(
 
 # test objective score on first row of parameter sheet
 for i in range(1, len(parameterSheet)):
-    print(objectiveScore(*parameterSheet[i][1:7]))
+    print("trial", parameterSheet[i][0], ":", objectiveScore(*parameterSheet[i][1:7]))
+# %%
+custom_weights = {
+    "roundness": 0,
+    "haz": 0,
+    "radius_ablated": 0,
+    "cracking": 1,
+}
+row1 = 118
+row2 = 121
+print(
+    f"looking at trials {parameterSheet[row1][0]} and {parameterSheet[row2][0]} with custom weights:"
+)
+# compare row 121 with 125 with and without custom weights
+print("\nWithout custom weights:")
+print("trial 121:", objectiveScore(*parameterSheet[121][1:7]))
+print("trial 125:", objectiveScore(*parameterSheet[125][1:7]))
+print("\nWith custom weights:")
+print("trial 121:", objectiveScore(*parameterSheet[121][1:7], weights=custom_weights))
+print("trial 125:", objectiveScore(*parameterSheet[125][1:7], weights=custom_weights))
 
 # %%
 # %%
@@ -165,6 +186,11 @@ for focus in weight_names:
         top_list.append(trials[int(np.argmax(scores))]["trial"])
     oat_top[focus] = top_list
 
+# print the top trial when it is not the same as baseline top for focus "haz"
+print("\nTop trials for 'HAZ' focus when different from baseline top:")
+for i, t in enumerate(oat_top["roundness"]):
+    if t != baseline_top:
+        print(f"Weight {sweep[i]:.2f} -> Top trial: {t}")
 
 # ── Panel K: per-trial robustness across Dirichlet simplex ───────────────────
 rng = np.random.default_rng(42)
@@ -232,7 +258,7 @@ ax_b.set_title(
     fontsize=12,
     fontweight="bold",
 )
-ax_b.set_xlim(0, 1)
+# ax_b.set_xlim(0, 1)
 ax_b.set_ylim(-0.6, len(weight_names))
 
 # K: Per-trial robustness
@@ -248,15 +274,25 @@ ax_k.errorbar(
     capsize=3,
     markersize=5,
     alpha=0.9,
+    label="Trial mean ± SD across 3000 random weight sets",
 )
-ax_k.axhline(
-    baseline_mean,
-    color="blue",
-    ls="--",
-    lw=1.3,
-    alpha=0.7,
-    label=f"Baseline mean: {baseline_mean:.3f}",
+ax_k.scatter(
+    trial_nums[mask],
+    np.array(baseline_scores)[mask],
+    color="green",
+    marker="x",
+    s=35,
+    zorder=4,
+    label="Baseline Score",
 )
+# ax_k.axhline(
+#     baseline_mean,
+#     color="blue",
+#     ls="--",
+#     lw=1.3,
+#     alpha=0.7,
+#     label=f"Baseline mean: {baseline_mean:.3f}",
+# )
 top_mask = trial_nums == baseline_top
 ax_k.errorbar(
     trial_nums[top_mask],
@@ -272,9 +308,10 @@ ax_k.errorbar(
     zorder=5,
     label=f"Top trial ({baseline_top})",
 )
+# plot the trials with the base weights in green
 ax_k.set_facecolor("white")
 ax_k.set_xlabel("Trial number", fontsize=10)
-ax_k.set_ylabel("Mean ± SD score", fontsize=10)
+ax_k.set_ylabel("Objective Score", fontsize=10)
 ax_k.set_title(
     "Per-Trial Score Robustness to Weight Variation\n"
     "(error bars = SD across 3000 random weight sets, all summing to 1)",
@@ -282,13 +319,15 @@ ax_k.set_title(
     fontweight="bold",
 )
 ax_k.legend(fontsize=9)
-
+# add (a) and (b) labels to panels
+ax_b.text(-0.1, 1.05, "(a)", transform=ax_b.transAxes, fontsize=12, fontweight="bold")
+ax_k.text(-0.1, 1.05, "(b)", transform=ax_k.transAxes, fontsize=12, fontweight="bold")
 fig.suptitle(
     "Objective Function Weight Sensitivity Analysis", fontsize=14, fontweight="bold"
 )
 plt.tight_layout()
 plt.savefig(
-    "sensitivity_analysis.png",
+    "sensitivity_analysis.svg",
     dpi=150,
     bbox_inches="tight",
     facecolor=fig.get_facecolor(),

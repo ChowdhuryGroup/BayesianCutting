@@ -5,7 +5,7 @@ import os
 from scipy.interpolate import splprep, splev
 
 trial = "55.1 userfed"
-dir = f"/Users/conradkuz/Library/CloudStorage/OneDrive-SharedLibraries-TheOhioStateUniversity/Chowdhury Lab (ALL) - Documents/Lab Files/BayesianGlassCutting/2025-04-29/trial images/trial {trial}"
+dir = f"/Users/conradkuz/Library/CloudStorage/OneDrive-SharedLibraries-TheOhioStateUniversity/Chowdhury Lab (ALL) - Glass cutting - Glass cutting/BayesianGlassCutting/2025-04-29/trial images/trial {trial}"
 print(dir)
 print(os.listdir(dir))
 

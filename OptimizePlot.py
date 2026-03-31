@@ -221,7 +221,7 @@ param_names = [
     "Scan Speed",
     "Hatch Spacing",
     "Repeats",
-    "Pulse Chrip",
+    "Pulse Chirp",
 ]
 
 param_y_labels = [
@@ -244,7 +244,22 @@ fig, axes = plt.subplots(3, 3, figsize=(15, 10), sharex=True)
 axes = axes.flatten()
 
 # Objective function
-axes[0].plot(objective, "k.-", linewidth=2, markersize=11)
+axes[0].plot(objective, "k.-", linewidth=2, markersize=11,alpha=0.6)
+#errorbar with quality standard deviation
+axes[0].errorbar(
+    range(len(objective)),
+    objective,
+    yerr=quality_standard_deviation,
+    #fmt="k.-",
+    fmt="none",
+    capsize=2,
+    elinewidth=2,
+    linewidth=2,
+    markersize=6,
+    marker="D",
+    ecolor = "brown",
+    alpha = 1
+)
 #axes[0].set_title("Objective Function", fontsize=20)
 # axes[0].set_xlabel("Observation No.", fontweight="bold")
 axes[0].set_ylabel("Objective", fontweight="bold", fontsize=14)
@@ -751,3 +766,197 @@ print(
     pulse_duration_from_compressor(200000),
 )
 # %%
+# --- GP Kernel Length Scales (Effective Parameter Sensitivity) ---
+# In skopt, the default GP kernel is: Sum(Product(Constant, Matern), WhiteKernel)
+# gp.kernel_.k1.k2 points to the Matern part which contains the length scales.
+
+gp = optimizer.models[-1]  # Final fitted GP surrogate
+
+# Extract normalized scales (these are fractions of the [0, 1] search space)
+# We use .k1.k2 to skip past the WhiteKernel and ConstantKernel
+if hasattr(gp.kernel_, 'k1') and hasattr(gp.kernel_.k1, 'k2'):
+    normalized_scales = gp.kernel_.k1.k2.length_scale
+else:
+    # Robust fallback: extract by hyperparameter name if structure differs
+    all_params = gp.kernel_.get_params()
+    normalized_scales = next(v for k, v in all_params.items() if 'length_scale' in k)
+
+# To get physical (raw) length scales, MULTIPLY normalized scales by the parameter range
+param_ranges = np.array([space[i].high - space[i].low for i in range(len(space))])
+raw_length_scales = normalized_scales * param_ranges
+
+# Invert: short normalized length scale = high sensitivity
+sensitivity = 1.0 / normalized_scales
+sensitivity /= sensitivity.sum()  # express as fraction of total sensitivity
+
+fig, ax = plt.subplots(figsize=(10, 6))
+bars = ax.bar(
+    param_names, 
+    normalized_scales,
+    color=plt.cm.tab10.colors[:len(param_names)], 
+    edgecolor="white", 
+    linewidth=0.8
+)
+
+# Annotate bars with the normalized length scale value
+for bar, norm_val in zip(bars, normalized_scales):
+    ax.text(
+        bar.get_x() + bar.get_width() / 2,
+        bar.get_height() + 0.005 * max(normalized_scales),
+        f"{norm_val:.3f}", 
+        ha="center", 
+        va="bottom", 
+        fontsize=11
+    )
+
+ax.set_ylabel("Normalized Length Scale (fraction of range)", fontweight="bold")
+ax.set_xlabel("Parameter", fontweight="bold")
+ax.set_title(
+    "GP Kernel Length Scales\nShorter bar = objective changes faster = higher sensitivity",
+    fontweight="bold"
+)
+print("SPACENAME",space[0].name)
+tick_names = [subspace.name for subspace in space]
+ax.set_xticks(range(len(space)))
+ax.set_xticklabels(tick_names, rotation=20, ha="right")
+plt.tight_layout()
+plt.show()
+
+# Also print a ranked summary
+print("\nParameter sensitivity ranking (most → least sensitive):")
+order = np.argsort(normalized_scales)  # ascending = most sensitive first
+for rank, i in enumerate(order):
+    print(f"  {rank+1}. {param_names[i]:25s}  norm. length scale = {normalized_scales[i]:.4f}  "
+          f"(raw = {raw_length_scales[i]:.4g},  range = {param_ranges[i]:.4g})")
+#%%
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.inspection import permutation_importance
+import matplotlib.pyplot as plt
+import numpy as np
+
+# 1. Train a Random Forest on your normalized parameters
+# Random Forests handle step-functions and thresholds (like chirp sign) much better than GPs
+rf = RandomForestRegressor(n_estimators=100, random_state=42)
+rf.fit(normalized_parameters, objective)
+
+# 2. Calculate Permutation Importance
+# This scrambles one parameter at a time and measures how much the R^2 drops.
+# Bigger drop = higher sensitivity to that parameter.
+result = permutation_importance(rf, normalized_parameters, objective, n_repeats=20, random_state=42)
+
+importance_means = result.importances_mean
+
+# Normalize so the importances sum to 1 (or 100%)
+importance_normalized = importance_means / importance_means.sum()
+
+# 3. Plot the Feature Importance
+fig, ax = plt.subplots(figsize=(10, 6))
+bars = ax.bar(
+    param_names, 
+    importance_normalized,
+    color=plt.cm.tab10.colors[:len(param_names)], 
+    edgecolor="white", 
+    linewidth=1.2
+)
+
+# Annotate bars
+for bar, val in zip(bars, importance_normalized):
+    ax.text(
+        bar.get_x() + bar.get_width() / 2,
+        bar.get_height() + 0.005,
+        f"{val:.3f}", 
+        ha="center", 
+        va="bottom", 
+        fontsize=12,
+        fontweight="bold"
+    )
+
+ax.set_ylabel("Relative Importance (Sensitivity)", fontweight="bold", fontsize=14)
+ax.set_title("Parameter Sensitivity via Permutation Importance", fontweight="bold", fontsize=18)
+ax.set_xticks(range(len(param_names)))
+ax.set_xticklabels(param_names, rotation=25, ha="right", fontsize=13, fontweight="bold")
+
+plt.tight_layout()
+plt.show()
+
+# Print ranked summary
+print("\nParameter Sensitivity Ranking (Permutation Importance):")
+order = np.argsort(importance_normalized)[::-1]  # descending order
+for rank, i in enumerate(order):
+    print(f"  {rank+1}. {param_names[i]:25s}  Importance = {importance_normalized[i]:.3f}")
+
+plot_objective(optimizer.get_result())
+plt.show()
+#%%
+from sklearn.ensemble import RandomForestRegressor
+
+# 1. Train RF on normalized data to bypass skopt's broken scaling state
+rf = RandomForestRegressor(n_estimators=100, random_state=42)
+rf.fit(normalized_parameters, objective)
+
+# 2. Get the absolute best parameter coordinates
+best_idx = np.argmax(objective)
+opt_params = normalized_parameters[best_idx]
+
+# 3. Calculate 1D slices (holding 6 parameters at optimum, sweeping 1)
+n_points = 100
+grid = np.linspace(0, 1, n_points)
+
+sensitivities = []
+predictions = []
+
+for i in range(len(param_names)):
+    # Create an array where every row is the optimal parameter set
+    X_slice = np.tile(opt_params, (n_points, 1))
+    # Sweep the current parameter from 0 to 1
+    X_slice[:, i] = grid
+    
+    # Predict quality along this slice
+    y_pred = rf.predict(X_slice)
+    predictions.append(y_pred)
+    
+    # Slice Sensitivity = Max predicted quality - Min predicted quality
+    sensitivities.append(np.max(y_pred) - np.min(y_pred))
+
+# Normalize the sensitivities so they sum to 1
+sensitivities = np.array(sensitivities)
+sens_norm = sensitivities / np.sum(sensitivities)
+
+# --- PLOT 1: The New Sensitivity Bar Chart ---
+fig, ax = plt.subplots(figsize=(9, 5))
+bars = ax.bar(param_names, sens_norm, color=plt.cm.tab10.colors[:len(param_names)], edgecolor="white")
+
+for bar, val in zip(bars, sens_norm):
+    ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.005,
+            f"{val:.3f}", ha="center", va="bottom", fontsize=12, fontweight="bold")
+
+ax.set_ylabel("Slice Sensitivity (Max-Min Δ)", fontweight="bold", fontsize=14)
+ax.set_title("Parameter Sensitivity (Peak-to-Peak Response at Optimum)", fontweight="bold", fontsize=16)
+ax.set_xticks(range(len(param_names)))
+ax.set_xticklabels(param_names, rotation=20, ha="right", fontweight="bold", fontsize=12)
+plt.tight_layout()
+plt.show()
+
+# --- PLOT 2: Partial Dependence 1D Slices (Replaces plot_objective) ---
+fig, axes = plt.subplots(2, 4, figsize=(16, 8))
+axes = axes.flatten()
+
+for i in range(len(param_names)):
+    axes[i].plot(grid, predictions[i], color=plt.cm.tab10.colors[i % 10], linewidth=3)
+    axes[i].axvline(opt_params[i], color='k', linestyle='--', label='Optimum')
+    axes[i].set_title(param_names[i], fontweight="bold", fontsize=16)
+    axes[i].set_xlabel("Normalized Range (0 to 1)", fontweight="bold")
+    axes[i].set_ylabel("Predicted Quality", fontweight="bold")
+    axes[i].set_ylim(0, 1)
+    axes[i].grid(True, linestyle='--', alpha=0.6)
+
+# Hide the 8th empty subplot
+axes[-1].axis('off')
+plt.tight_layout()
+plt.show()
+
+# Print ranked summary
+print("\nParameter Sensitivity Ranking (Slice Amplitude):")
+order = np.argsort(sens_norm)[::-1]
+for rank, i in enumerate(order):
+    print(f"  {rank+1}. {param_names[i]:25s}  Importance = {sens_norm[i]:.3f}")
