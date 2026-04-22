@@ -149,7 +149,7 @@ axs[0].errorbar(
 )
 axs[0].set_title("Trial vs HAZ")
 axs[0].set_xlabel("Trial")
-axs[0].set_ylabel("HAZ:Clean Cut Area Ratio")
+axs[0].set_ylabel("Normalized HAZ Ratio")
 axs[1].errorbar(
     trial_summary["Trial"],
     trial_summary["isoperimetric_ratio_mean"],
