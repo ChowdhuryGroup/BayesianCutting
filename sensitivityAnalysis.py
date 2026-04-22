@@ -48,15 +48,32 @@ def objectiveScore(
         * np.abs(desired_radius - averageRadius)
         / desired_radius
     )
-    crackingScore = weights["cracking"] * crackingPresent
+    if cleanCutArea != 0.0:
+        crackingScore = weights["cracking"] * crackingPresent
+    else:
+        crackingScore = 1 * weights["cracking"]
     # Calculate the score based on the parameters and their weights
     score = 1 - (roundnessScore + hazScore + radiusScore + crackingScore)
     return score
 
 
+weights = {
+    "roundness": 0,
+    "haz": 0,
+    "radius_ablated": 0,
+    "cracking": 1,
+}
 # test objective score on first row of parameter sheet
 for i in range(1, len(parameterSheet)):
-    print("trial", parameterSheet[i][0], ":", objectiveScore(*parameterSheet[i][1:7]))
+    if 52 != parameterSheet[i][0]:
+        continue
+    print(
+        "trial",
+        parameterSheet[i][0],
+        ":",
+        objectiveScore(*parameterSheet[i][1:7], weights=weights),
+    )
+print(np.std([1, 1, 0, 0]))
 
 # %%
 import matplotlib.pyplot as plt
@@ -456,3 +473,5 @@ plt.savefig(
 )
 print("Saved: sensitivity_analysis.png")
 plt.show()
+
+# %%
